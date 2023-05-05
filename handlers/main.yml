@@ -1,0 +1,16 @@
+---
+- name: reload sshd
+  service:
+    name: sshd
+    state: reloaded
+
+- name: force update ddns
+  command:
+    cmd: /usr/sbin/ddclient --force
+  become: true
+  become_user: ddclient
+
+- name: restart rsyslogd
+  service:
+    name: rsyslog
+    state: restarted

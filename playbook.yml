@@ -4,12 +4,12 @@
   remote_user: root
   become: true
   vars:
-    remote_tmp: /tmp/ansible/tmp
+    ansible_remote_tmp: /tmp/ansible/tmp
   tasks:
     - name: Include secrets
       include_vars: secrets.yml
     - import_tasks: tasks/system.yml
+    - import_tasks: tasks/logging.yml
     - import_tasks: tasks/ddns.yml
   handlers:
-    - import_tasks: handlers/system.yml
-    - import_tasks: handlers/ddns.yml
+    - import_tasks: handlers/main.yml

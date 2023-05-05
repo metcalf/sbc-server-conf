@@ -1,6 +1,0 @@
----
-- name: force update ddns
-  command:
-    cmd: /usr/sbin/ddclient --force
-  become: true
-  become_user: ddclient

@@ -1,0 +1,63 @@
+---
+- name: rsyslogd remote config
+  copy:
+    src: files/rsyslog-remote.conf
+    dest: /etc/rsyslog.d/99-rsyslog-remote.conf
+    mode: "0644"
+    validate: rsyslogd -N1 -f %s
+  notify: restart rsyslogd
+
+- name: create remote log directory with correct permissions
+  file:
+    path: /var/log/remote
+    owner: syslog
+    group: loguploader
+    mode: "0750"
+    state: directory
+
+- name: logrotate for rsyslogd remote
+  copy:
+    src: files/rsyslog-remote.logrotate.conf
+    dest: /etc/logrotate.d/rsyslog-remote
+    mode: "0644"
+    validate: logrotate -d %s
+
+- name: install awscli
+  apt:
+    name: awscli
+    state: present
+
+- name: Create loguploader user
+  user:
+    name: loguploader
+    password_lock: true
+    create_home: true
+
+- name: Create ~/.aws
+  file:
+    path: /home/loguploader/.aws
+    mode: "0755"
+    owner: loguploader
+    state: directory
+
+- name: Copy aws config
+  copy:
+    src: files/aws.loguploader.config
+    dest: /home/loguploader/.aws/config
+    mode: "0600"
+    owner: loguploader
+
+- name: Copy aws credentials
+  template:
+    src: templates/aws.loguploader.credentials.j2
+    dest: /home/loguploader/.aws/credentials
+    mode: "0600"
+    owner: loguploader
+
+- name: Copy uploader script to cron.daily
+  copy:
+    src: files/upload_logs
+    # Prepend `z-` to ensure this runs after `logrotate`
+    dest: /etc/cron.daily/z-upload_logs
+    mode: "0755"
+    owner: root
