@@ -1,0 +1,29 @@
+---
+- name: Create ddclient user
+  user:
+    name: ddclient
+    password_lock: true
+    create_home: false
+
+- name: Install ddclient
+  apt:
+    name:
+      - ddclient
+      - libjson-any-perl
+      - libio-socket-ssl-perl
+    state: present
+  notify: force update ddns
+
+- name: Template the config file
+  template:
+    src: templates/ddclient.conf.j2
+    dest: /etc/ddclient.conf
+    owner: ddclient
+    mode: "0600"
+  notify: force update ddns
+
+- name: Run ddclient via cron every 10 minutes
+  copy:
+    content: '*/10 * * * * root /usr/sbin/ddclient'
+    dest: /etc/cron.d/ddclient
+    mode: "0644"

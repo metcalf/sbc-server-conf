@@ -1,16 +1,22 @@
-* Assign a fixed IP (possibly from the DHCP server)
-* Copy SSH public key to device (`ssh-copy-id <public key> andrew@192.168.1.141`)
-* Use SSH agent forwarding when connecting for access to Github (`ssh -A andrew@192.168.1.141`)
-* Install Ansible
+* Follow instructions to install Armbian (https://docs.armbian.com/User-Guide_Getting-Started/)
+* Determine the IP address
+* SSH for the first time to configure passwords and `apt-get update && apt-get upgrade`
+* Copy SSH public key to device
+  ```
+    ssh-copy-id -i ~/.ssh/id_ed25519.pub andrew@192.168.1.141
+    ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.1.141
+  ```
+* `mv secrets.yml.tmpl secrets.yml` and fill out as needed
 * Run:
 ```
-ansible-playbook --ask-become-pass -i hosts playbook.yml --connection=local
+ansible-playbook --inventory hosts playbook.yml --connection=local
 ```
 
-
 TODO:
-* Install node, typescript, ts-node, loggly, pagerduty
-* Manage starting services with systemd
+* Install node, typescript, ts-node, loggly, pagerduty, cloudflare dns
+* Manage starting services with systemd?
 * Set up log rotation
 * Manage loggly agent
 * Paging when services crash
+* Write or find a UDP logging service
+* Ping alerting

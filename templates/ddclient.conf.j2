@@ -1,0 +1,20 @@
+# /etc/ddclient.conf
+#
+daemon=0
+cache=/tmp/ddclient.cache
+
+# Local IP
+protocol=cloudflare
+use=if, if=eth0
+zone=itsshedtime.com
+login=token
+password={{cloudflare_api_token}}
+home-sbc-server-local.itsshedtime.com
+
+# House public IP
+protocol=cloudflare
+use=web
+zone=itsshedtime.com
+login=token
+password={{cloudflare_api_token}}
+home-public.itsshedtime.com

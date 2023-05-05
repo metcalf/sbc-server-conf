@@ -1,0 +1,10 @@
+---
+- name: System config
+  block:
+  - name: sshd config
+    copy:
+      src: files/sshd_config
+      dest: /etc/ssh/sshd_config
+      validate: sudo sshd -t -f %s
+    notify:
+      - reload sshd

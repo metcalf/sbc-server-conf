@@ -1,2 +1,15 @@
 ---
-- hosts: all
+- name: Configure it all
+  hosts: all
+  remote_user: root
+  become: true
+  vars:
+    remote_tmp: /tmp/ansible/tmp
+  tasks:
+    - name: Include secrets
+      include_vars: secrets.yml
+    - import_tasks: tasks/system.yml
+    - import_tasks: tasks/ddns.yml
+  handlers:
+    - import_tasks: handlers/system.yml
+    - import_tasks: handlers/ddns.yml
