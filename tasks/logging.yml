@@ -1,4 +1,11 @@
 ---
+- name: rsyslogd disable RepeatedMsgReduction
+  lineinfile:
+    path: /etc/rsyslog.conf
+    search_string: '$RepeatedMsgReduction on'
+    line: '#$RepeatedMsgReduction on'
+  notify: restart rsyslogd
+
 - name: rsyslogd remote config
   copy:
     src: files/rsyslog-remote.conf
@@ -9,11 +16,14 @@
 
 - name: create remote log directory with correct permissions
   file:
-    path: /var/log/remote
+    path: "{{item}}"
     owner: syslog
     group: loguploader
     mode: "0750"
     state: directory
+  with_list:
+    - /var/log/remote
+    - /var/log.hdd/remote
 
 - name: logrotate for rsyslogd remote
   copy:

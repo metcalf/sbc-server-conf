@@ -1,6 +1,8 @@
 #!/bin/bash
+set -euxo pipefail
 
 if [ "$(id -u)" -eq 0 ]; then
+    # chgrp loguploader /var/log.hdd/remote
     exec sudo -H -u loguploader $0
 fi
 
@@ -9,13 +11,15 @@ cd ~
 
 # Iterate over log files that are ready to upload and upload them
 # We don't use `aws s3 sync` to avoid needing the GetObject permission
-/usr/bin/find /var/log/remote -name '*.log-*' -print0 | while IFS= read -r -d "" logpath; do
+/usr/bin/find /var/log.hdd/remote -name '*.log-*.gz' -print0 | while IFS= read -r -d "" logpath; do
     logname="$(basename $logpath)"
     s3path="s3://itsshedtime-logs/home-sbc-server/$logname"
+
     if aws s3 ls "$s3path"
     then
         echo "$logname is already on S3"
     else
-        aws s3 cp "$logpath" "$s3path"
+        aws s3 cp "$logname" "$s3path"
+        echo "uploaded $logname"
     fi
 done
