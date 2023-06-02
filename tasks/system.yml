@@ -1,4 +1,10 @@
 ---
+- name: set UTC timezone
+  community.general.timezone:
+    name: UTC
+  notify:
+    - restart crond
+
 - name: sshd config
   copy:
     src: files/sshd_config

@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 if [ "$(id -u)" -eq 0 ]; then
-    # chgrp loguploader /var/log.hdd/remote
+    chgrp --recursive loguploader /var/log.hdd/remote
     exec sudo -H -u loguploader $0
 fi
 
@@ -19,7 +19,7 @@ cd ~
     then
         echo "$logname is already on S3"
     else
-        aws s3 cp "$logname" "$s3path"
+        aws s3 cp "$logpath" "$s3path"
         echo "uploaded $logname"
     fi
 done

@@ -41,6 +41,6 @@
 
 - name: Run ddclient via cron every 10 minutes
   copy:
-    content: '*/10 * * * * root /usr/sbin/ddclient'
+    content: "*/10 * * * * ddclient /usr/sbin/ddclient\n"
     dest: /etc/cron.d/ddclient
     mode: "0644"
