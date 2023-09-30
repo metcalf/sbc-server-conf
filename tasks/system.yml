@@ -57,3 +57,15 @@
 - name: Enable UFW
   community.general.ufw:
     state: enabled
+
+# Stop sysstat since it takes up too much /var/log ramdisk space (its logrotation is
+# broken by armbians ramlogging copying back and forth)
+- name: uninstall sysstat
+  package:
+    name: sysstat
+    state: absent
+
+- name: remove sysstat logs
+  file:
+    path: /var/log/sysstat
+    state: absent
