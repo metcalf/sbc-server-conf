@@ -9,7 +9,7 @@
 * `mv secrets.yml.tmpl secrets.yml` and fill out as needed
 * Run:
 ```
-ansible-playbook --inventory hosts playbook.yml --connection=local
+ansible-playbook --inventory hosts playbook.yml --verbose
 ```
 
 TODO:

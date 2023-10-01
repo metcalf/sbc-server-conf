@@ -11,5 +11,7 @@
     - import_tasks: tasks/system.yml
     - import_tasks: tasks/logging.yml
     - import_tasks: tasks/ddns.yml
+    - import_tasks: tasks/apps.yml
+
   handlers:
     - import_tasks: handlers/main.yml

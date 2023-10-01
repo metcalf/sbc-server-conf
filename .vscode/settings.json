@@ -1,5 +1,6 @@
 {
     "files.associations": {
       "tasks/*.yml": "ansible",
-    }
+    },
+    "ansible.python.interpreterPath": "/Users/andrew/.pyenv/versions/3.7.10/bin/python"
   }

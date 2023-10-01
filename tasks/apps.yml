@@ -1,0 +1,37 @@
+---
+- name: install dependencies
+  apt:
+    name:
+      - python3
+      - python3-pip # Had to run apt-get update manually when I installed this for some reason
+      - moreutils
+    state: present
+
+- name: Install requests python package
+  ansible.builtin.pip:
+    name: requests
+
+# Mila control
+- name: mila control script
+  copy:
+    src: files/mila_ctrl.py
+    dest: /usr/local/bin/mila_ctrl.py
+
+- name: mila control cron script
+  template:
+    src: templates/mila_ctrl_cron.j2
+    dest: /usr/local/bin/mila_ctrl_cron
+    mode: "0700"
+
+- name: Run mila control via cron every 5 minutes
+  copy:
+    content: "*/5 * * * * root /usr/local/bin/mila_ctrl_cron\n"
+    dest: /etc/cron.d/mila_ctrl
+    mode: "0644"
+
+- name: Rotate mila control logs
+  copy:
+    src: files/mila_ctrl.logrotate.conf
+    dest: /etc/logrotate.d/mila_ctrl
+    mode: "0644"
+    validate: logrotate -d %s
