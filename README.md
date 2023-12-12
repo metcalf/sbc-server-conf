@@ -13,7 +13,7 @@ ansible-playbook --inventory hosts playbook.yml --verbose
 ```
 
 TODO:
-* Install node, typescript, ts-node, loggly, pagerduty, cloudflare dns
+* Install loggly, pagerduty
 * Manage starting services with systemd?
 * Set up log rotation
 * Manage loggly agent

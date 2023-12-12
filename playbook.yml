@@ -5,6 +5,8 @@
   become: true
   vars:
     ansible_remote_tmp: /tmp/ansible/tmp
+    nonroot_login_user: andrew
+    nodenv_root: /home/{{ nonroot_login_user }}/.nodenv
   tasks:
     - name: Include secrets
       include_vars: secrets.yml

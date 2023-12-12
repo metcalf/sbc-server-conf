@@ -5,11 +5,51 @@
       - python3
       - python3-pip # Had to run apt-get update manually when I installed this for some reason
       - moreutils
+      - nodejs
     state: present
 
 - name: Install requests python package
   ansible.builtin.pip:
     name: requests
+
+# Nodenv
+- name: Clone nodenv
+  git:
+    repo: 'https://github.com/nodenv/nodenv.git'
+    dest: "{{ nodenv_root }}"
+    version: master
+  become: true
+  become_user: "{{ nonroot_login_user }}"
+
+- name: Clone node-build
+  git:
+    repo: 'https://github.com/nodenv/node-build.git'
+    dest: "/home/{{ nonroot_login_user }}/.nodenv/plugins/node-build"
+    version: master
+  become: true
+  become_user: "{{ nonroot_login_user }}"
+
+- name: Configure bash extension
+  command:
+    cmd: src/configure
+    chdir: "{{ nodenv_root }}"
+  become: true
+  become_user: "{{ nonroot_login_user }}"
+
+- name: Compile bash extension
+  command:
+    cmd: make -C src
+    chdir: "{{ nodenv_root }}"
+  become: true
+  become_user: "{{ nonroot_login_user }}"
+
+- name: Setup nodenv in .bashrc
+  blockinfile:
+    marker: "### {mark} ANSIBLE MANAGED BLOCK - NODENV ###"
+    path: "/home/{{ nonroot_login_user}}/.bashrc"
+    block: |
+      export PATH="{{ nodenv_root }}/bin:$PATH"
+      eval "$(nodenv init -)"
 
 # Mila control
 - name: mila control script
