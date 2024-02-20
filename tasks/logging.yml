@@ -64,6 +64,15 @@
     mode: "0600"
     owner: loguploader
 
+- name: Create heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /home/loguploader/heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/25c7b34e-e942-4b5e-a63a-2993c839f699
+    heartbeat_status_arg: $1
+
 - name: Copy uploader script to cron.daily
   copy:
     src: files/upload_logs

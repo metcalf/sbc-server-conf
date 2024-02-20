@@ -6,6 +6,8 @@ if [ "$(id -u)" -eq 0 ]; then
     exec sudo -H -u loguploader $0
 fi
 
+trap '~/heartbeat /$?' EXIT
+
 # Change to the home directory so `find` doesn't error trying to change back to /root
 cd ~
 

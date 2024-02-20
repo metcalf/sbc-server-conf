@@ -30,6 +30,14 @@
     path: /etc/ddclient
     mode: "0755"
     state: directory
+- name: Create heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /etc/ddclient/heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/f20f46ab-7171-4b56-bbfb-f9383bfa979f
+
 
 - name: Template the config file
   template:
