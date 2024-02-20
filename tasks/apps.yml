@@ -75,3 +75,21 @@
     dest: /etc/logrotate.d/mila_ctrl
     mode: "0644"
     validate: logrotate -d %s
+
+# tdlib for the Telegram api
+# to build follow https://tdlib.github.io/td/build.html?language=JavaScript, follow instruction to only build tdjson/tdjson_static https://github.com/tdlib/td/tree/master?tab=readme-ov-file#building
+- name: libtdjson
+  copy:
+    src: files/libtdjson.so.1.8.25-arm64
+    dest: /usr/local/lib/libtdjson.so.1.8.25
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: libtdjson link
+  file:
+    src: /usr/local/lib/libtdjson.so.1.8.25
+    dest: /usr/local/lib/libtdjson.so
+    owner: root
+    group: root
+    state: link
