@@ -1,4 +1,47 @@
 ---
+# Disable armbian-ramlog. The interaction of their implementation with log rotation is
+# buggy as hell and not worth the trouble. Better to just replace the SD card when it
+# wears out from the extra writes.
+# We only use zram for ramlog so we can disable that too
+- name: disable armbian-ramlog and armbian-zram-config
+  lineinfile:
+    path: "{{item}}"
+    search_string: 'ENABLED='
+    line: 'ENABLED=false'
+  notify: reboot
+  with_list:
+    - /etc/default/armbian-ramlog
+    - /etc/default/armbian-zram-config
+
+# armbian's logrotate.d configurations point to log.hdd so create a symlink
+# so that we don't have to edit all those configurations. Ansible won't
+# link a directory with contents, so we have to delete it first.
+# - name: state /var/log.hdd
+#   stat:
+#     path: /var/log.hdd
+#   register: log_hdd_stat
+
+# - name: remove /var/log.hdd if it is a normal directory
+#   file:
+#     path: /var/log.hdd
+#     state: absent
+#     force: true
+#   when: log_hdd_stat.stat.isdir is defined and log_hdd_stat.stat.isdir
+
+- name: unmount /var/log.hdd
+  mount:
+    path: /var/log.hdd
+    state: unmounted
+
+- name: link /var/log.hdd
+  file:
+    src: /var/log
+    dest: /var/log.hdd
+    owner: root
+    group: syslog
+    state: link
+    force: true # convert directory to symlink
+
 - name: rsyslogd disable RepeatedMsgReduction
   lineinfile:
     path: /etc/rsyslog.conf
@@ -16,14 +59,11 @@
 
 - name: create remote log directory with correct permissions
   file:
-    path: "{{item}}"
+    path: /var/log/remote
     owner: syslog
     group: loguploader
     mode: "0750"
     state: directory
-  with_list:
-    - /var/log/remote
-    - /var/log.hdd/remote
 
 - name: logrotate for rsyslogd remote
   copy:

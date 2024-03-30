@@ -19,3 +19,11 @@
   service:
     name: crond
     state: restarted
+
+- name: reboot
+  debug:
+    msg:
+      - ">>>>>>>>>>>>> NOTE <<<<<<<<<<<<<<<<"
+      - "Manual reboot required, auto reboot is borked"
+      - "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  # reboot:

@@ -58,8 +58,7 @@
   community.general.ufw:
     state: enabled
 
-# Stop sysstat since it takes up too much /var/log ramdisk space (its logrotation is
-# broken by armbians ramlogging copying back and forth)
+# Stop sysstat since it wastes log space/writes
 - name: uninstall sysstat
   package:
     name: sysstat
