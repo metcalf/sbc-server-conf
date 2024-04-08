@@ -93,3 +93,11 @@
     owner: root
     group: root
     state: link
+
+- name: wake-xps script
+  copy:
+    src: files/wake-xps
+    dest: /root/wake-xps
+    mode: "0755"
+    owner: root
+    group: root

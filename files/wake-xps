@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euxo pipefail
+while true
+do
+etherwake -b 74:86:E2:16:25:5D
+sleep 20
+done

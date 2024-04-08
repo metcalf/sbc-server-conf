@@ -11,6 +11,10 @@
 ```
 ansible-playbook --inventory hosts playbook.yml --verbose
 ```
+Or remotely:
+```
+ansible-playbook --inventory home-public.itsshedtime.com, playbook.yml --verbose
+```
 
 TODO:
 * Install loggly, pagerduty
