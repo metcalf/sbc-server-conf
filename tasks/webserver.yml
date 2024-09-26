@@ -1,0 +1,68 @@
+---
+
+- name: install dependencies
+  apt:
+    name:
+      - nginx
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+
+- name: Cloudflare API credentials for certbot
+  copy:
+    content: "dns_cloudflare_api_token = {{ cloudflare_api_token }}"
+    dest: /root/certbot-cloudflare.ini
+    mode: "0600"
+
+- name: Acquire certificate
+  command:
+    argv:
+      - certbot
+      - certonly
+      # Run non-interactively
+      - -n
+      - --dns-cloudflare
+      - --dns-cloudflare-credentials=/root/certbot-cloudflare.ini
+      - -d home-sbc-server-local.itsshedtime.com
+      - --email=hello@itsshedtime.com
+      - --agree-tos
+    creates: /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/privkey.pem
+
+- name: nginx.conf
+  copy:
+    src: files/nginx.conf
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify: reload nginx
+
+- name: Remove default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Install sites
+  copy:
+    src: 'files/sites/{{ item }}'
+    dest: '/etc/nginx/sites-enabled/{{ item }}'
+  notify: reload nginx
+  loop:
+    - home-sbc-server-local.itsshedtime.com
+
+- name: Create site directories
+  file:
+    path: '{{ item }}'
+    mode: "0755"
+    state: directory
+  loop:
+    - /var/www/local
+
+# For some reason my version of iptables doesn't like the multiport directive ufw uses
+# to have multiple ports in a single rule so we need to set 80 and 443 separately.
+- name: Allow local HTTP(S)
+  community.general.ufw:
+    rule: allow
+    port: '{{ item }}'
+    proto: tcp
+  loop:
+    - 80
+    - 443

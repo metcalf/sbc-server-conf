@@ -27,3 +27,8 @@
       - "Manual reboot required, auto reboot is borked"
       - "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   # reboot:
+
+- name: reload nginx
+  service:
+    name: nginx
+    state: reloaded
