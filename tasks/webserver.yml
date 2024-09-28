@@ -8,6 +8,13 @@
       - python3-certbot-dns-cloudflare
     state: present
 
+- name: Configure logrotate for nginx
+  copy:
+    src: files/nginx.logrotate.conf
+    dest: /etc/logrotate.d/nginx
+    mode: "0644"
+    validate: logrotate -d %s
+
 - name: Cloudflare API credentials for certbot
   copy:
     content: "dns_cloudflare_api_token = {{ cloudflare_api_token }}"
