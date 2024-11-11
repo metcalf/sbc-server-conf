@@ -1,0 +1,63 @@
+---
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu jammy stable
+    state: present
+  register: dockerrepo
+
+- name: Update apt and install docker-ce
+  apt:
+    name:
+      - docker-ce
+      - docker-compose-plugin
+    state: latest
+    update_cache: "{{ dockerrepo.changed }}"
+
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: Create homeassistant group
+  group:
+    name: homeassistant
+    state: present
+    gid: 8123
+
+- name: Create homeassistant user
+  user:
+    name: homeassistant
+    comment: Home Assisstant
+    uid: 8123
+    group: homeassistant
+    create_home: false
+
+- name: Create homeassistant directory
+  file:
+    path: /var/local/homeassistant
+    owner: homeassistant
+    group: homeassistant
+    mode: '0755'
+    state: directory
+
+- name: Place compose file
+  copy:
+    src: files/homeassistant-compose.yml
+    dest: /var/local/homeassistant/compose.yml
+    mode: '0644'
+
+- name: Make docker is running
+  systemd_service:
+    name: docker
+    state: started
+
+- name: Start homeassistant docker service
+  community.docker.docker_compose_v2:
+    project_src: /var/local/homeassistant/
+
+# Place compose file
+# Start docker compose as a service

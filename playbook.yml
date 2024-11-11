@@ -15,6 +15,7 @@
     - import_tasks: tasks/ddns.yml
     - import_tasks: tasks/apps.yml
     - import_tasks: tasks/webserver.yml
+    - import_tasks: tasks/homeassistant.yml
 
   handlers:
     - import_tasks: handlers/main.yml

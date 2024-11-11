@@ -1,0 +1,24 @@
+---
+services:
+  homeassistant:
+    # NOTE: We use this instead of the ghcr.io version since it runs unprivileged by default
+    image: lscr.io/linuxserver/homeassistant:latest
+    container_name: homeassistant
+    network_mode: host
+    environment:
+      - PUID=8123
+      - PGID=8123
+      - TZ=America/Los_Angeles
+    # Need to add these for bluetooth
+    # cap_add:
+    #   - NET_ADMIN
+    #   - NET_RAW
+    # volumes:
+    #   - /var/run/dbus:/var/run/dbus:ro
+    volumes:
+      - /var/local/homeassistant:/config
+    ports:
+      - 8123:8123
+    security_opt:
+      - no-new-privileges
+    restart: unless-stopped
