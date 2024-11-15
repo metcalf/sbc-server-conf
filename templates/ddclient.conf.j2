@@ -4,7 +4,7 @@ cache=/tmp/ddclient.cache
 
 # Local IP
 protocol=cloudflare
-use=if, if=eth0
+use=if, if=end0
 zone=itsshedtime.com
 login=token
 password={{cloudflare_api_token}}
@@ -17,4 +17,4 @@ zone=itsshedtime.com
 login=token
 password={{cloudflare_api_token}}
 home-public.itsshedtime.com
-postscript=/etc/ddclient/heartbeat
+postscript=/var/local/ddclient-heartbeat

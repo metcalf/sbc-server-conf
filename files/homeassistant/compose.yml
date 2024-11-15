@@ -9,16 +9,15 @@ services:
       - PUID=8123
       - PGID=8123
       - TZ=America/Los_Angeles
-    # Need to add these for bluetooth
-    # cap_add:
-    #   - NET_ADMIN
-    #   - NET_RAW
-    # volumes:
-    #   - /var/run/dbus:/var/run/dbus:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
+      - /var/run/dbus:/var/run/dbus:ro
       - /var/local/homeassistant:/config
-    ports:
-      - 8123:8123
+    # This is only needed without `host` networking mode
+    # ports:
+    #   - 8123:8123
     security_opt:
       - no-new-privileges
     restart: unless-stopped

@@ -3,7 +3,7 @@
   community.general.timezone:
     name: UTC
   notify:
-    - restart crond
+    - restart cron
 
 - name: sshd config
   copy:
@@ -14,14 +14,6 @@
   notify:
     - reload sshd
 
-- name: use iptables-legacy for UFW compatibility
-  community.general.alternatives:
-    name: "{{ item }}"
-    path: "/usr/sbin/{{ item }}-legacy"
-  loop:
-    - iptables
-    - ip6tables
-
 - name: install ufw
   apt:
     name: ufw
@@ -29,6 +21,7 @@
 
 # Logging breaks things for some reason, probably need to install the correct
 # kernel module but didn't feel like debugging it.
+# TODO: Is this still an issue on 24.04?
 - name: Disable firewall logging
   community.general.ufw:
     logging: 'off'
@@ -68,3 +61,9 @@
   file:
     path: /var/log/sysstat
     state: absent
+
+- name: Install snapd
+  apt:
+    name:
+      - snapd
+    state: present

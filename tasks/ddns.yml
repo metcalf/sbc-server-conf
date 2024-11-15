@@ -8,41 +8,23 @@
 - name: Install ddclient
   apt:
     name:
-      # - ddclient
-      # Remove these deps and uncomment `install_recommends` once we start installing ddclient via apt
-      - perl:any
-      - libdata-validate-ip-perl
-      - libjson-any-perl
-      - libio-socket-ssl-perl
-    # install_recommends: true
+      - ddclient
+    install_recommends: true
     state: present
   notify: force update ddns
 
-# Get rid of these two when we install via apt again, need at least version 3.10
-- name: Copy ddclient
-  copy:
-    src: files/ddclient
-    dest: /usr/sbin/ddclient
-    mode: "0755"
-  notify: force update ddns
-- name: Create conf directory
-  file:
-    path: /etc/ddclient
-    mode: "0755"
-    state: directory
-- name: Create heartbeat script
+- name: Create ddns heartbeat script
   template:
     src: templates/heartbeat.sh.j2
-    dest: /etc/ddclient/heartbeat
+    dest: /var/local/ddclient-heartbeat
     mode: "0755"
   vars:
     heartbeat_url: https://hc-ping.com/f20f46ab-7171-4b56-bbfb-f9383bfa979f
 
-
 - name: Template the config file
   template:
     src: templates/ddclient.conf.j2
-    dest: /etc/ddclient/ddclient.conf
+    dest: /etc/ddclient.conf
     owner: ddclient
     mode: "0600"
   notify: force update ddns

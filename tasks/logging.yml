@@ -15,19 +15,7 @@
 
 # armbian's logrotate.d configurations point to log.hdd so create a symlink
 # so that we don't have to edit all those configurations. Ansible won't
-# link a directory with contents, so we have to delete it first.
-# - name: state /var/log.hdd
-#   stat:
-#     path: /var/log.hdd
-#   register: log_hdd_stat
-
-# - name: remove /var/log.hdd if it is a normal directory
-#   file:
-#     path: /var/log.hdd
-#     state: absent
-#     force: true
-#   when: log_hdd_stat.stat.isdir is defined and log_hdd_stat.stat.isdir
-
+# link a directory with contents, so we have to unmount it first.
 - name: unmount /var/log.hdd
   mount:
     path: /var/log.hdd
@@ -57,6 +45,12 @@
     validate: rsyslogd -N1 -f %s
   notify: restart rsyslogd
 
+- name: Create loguploader user
+  user:
+    name: loguploader
+    password_lock: true
+    create_home: true
+
 - name: create remote log directory with correct permissions
   file:
     path: /var/log/remote
@@ -73,15 +67,10 @@
     validate: logrotate -d %s
 
 - name: install awscli
-  apt:
-    name: awscli
-    state: present
-
-- name: Create loguploader user
-  user:
-    name: loguploader
-    password_lock: true
-    create_home: true
+  community.general.snap:
+    name: aws-cli
+    classic: true
+    channel: v2/stable
 
 - name: Create ~/.aws
   file:
@@ -104,7 +93,7 @@
     mode: "0600"
     owner: loguploader
 
-- name: Create heartbeat script
+- name: Create loguploader heartbeat script
   template:
     src: templates/heartbeat.sh.j2
     dest: /home/loguploader/heartbeat

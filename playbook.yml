@@ -10,12 +10,12 @@
   tasks:
     - name: Include secrets
       include_vars: secrets.yml
-    - import_tasks: tasks/system.yml
-    - import_tasks: tasks/logging.yml
-    - import_tasks: tasks/ddns.yml
-    - import_tasks: tasks/apps.yml
+    # - import_tasks: tasks/system.yml
+    # - import_tasks: tasks/logging.yml
+    # - import_tasks: tasks/ddns.yml
+    # - import_tasks: tasks/apps.yml
     - import_tasks: tasks/webserver.yml
-    - import_tasks: tasks/homeassistant.yml
+    # - import_tasks: tasks/homeassistant.yml
 
   handlers:
     - import_tasks: handlers/main.yml

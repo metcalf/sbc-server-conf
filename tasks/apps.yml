@@ -4,13 +4,10 @@
     name:
       - python3
       - python3-pip # Had to run apt-get update manually when I installed this for some reason
+      - python3-requests # Latest Ubuntu doesn't like using pip on system-wide Python
       - moreutils
       - nodejs
     state: present
-
-- name: Install requests python package
-  ansible.builtin.pip:
-    name: requests
 
 # Nodenv
 - name: Clone nodenv
@@ -26,6 +23,8 @@
     repo: 'https://github.com/nodenv/node-build.git'
     dest: "/home/{{ nonroot_login_user }}/.nodenv/plugins/node-build"
     version: master
+    single_branch: true
+    force: true
   become: true
   become_user: "{{ nonroot_login_user }}"
 

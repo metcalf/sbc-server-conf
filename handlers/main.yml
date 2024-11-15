@@ -6,7 +6,7 @@
 
 - name: force update ddns
   command:
-    cmd: /usr/sbin/ddclient --force
+    cmd: /usr/bin/ddclient --force
   become: true
   become_user: ddclient
 
@@ -21,12 +21,7 @@
     state: restarted
 
 - name: reboot
-  debug:
-    msg:
-      - ">>>>>>>>>>>>> NOTE <<<<<<<<<<<<<<<<"
-      - "Manual reboot required, auto reboot is borked"
-      - "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-  # reboot:
+  reboot:
 
 - name: reload nginx
   service:

@@ -42,6 +42,13 @@
     mode: "0644"
   notify: reload nginx
 
+- name: nginx secrets
+  template:
+    src: templates/nginx-secrets.conf.j2
+    dest: /etc/nginx/conf.d/secrets.conf
+    mode: "0700"
+  notify: reload nginx
+
 - name: Remove default site
   file:
     path: /etc/nginx/sites-enabled/default
@@ -54,6 +61,7 @@
   notify: reload nginx
   loop:
     - home-sbc-server-local.itsshedtime.com
+    - homeassistant
 
 - name: Create site directories
   file:
