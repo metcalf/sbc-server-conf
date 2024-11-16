@@ -16,8 +16,18 @@ server {
     location = /custom-api/on_vacation {
         proxy_pass http://127.0.0.1:8123/api/template;
         proxy_method POST;
+        proxy_pass_request_headers off;
         proxy_set_header Content-Type "application/json";
         proxy_set_header Authorization "Bearer $hass_token";
         proxy_set_body '{"template": "{{ 1 if is_state(\'binary_sensor.on_vacation\', \'on\') else 0 }}"}';
+    }
+
+    location = /custom-api/states/sensor.custom_thermostat_api_data {
+        proxy_pass http://127.0.0.1:8123/api/template;
+        proxy_method POST;
+        proxy_pass_request_headers off;
+        proxy_set_header Content-Type "application/json";
+        proxy_set_header Authorization "Bearer $hass_token";
+        proxy_set_body '{"template": "{{ states.sensor.custom_thermostat_api_data.state }}"}';
     }
 }
