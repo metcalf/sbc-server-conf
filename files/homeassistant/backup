@@ -9,7 +9,7 @@ fi
 trap '/var/local/homeassistant/backup_heartbeat /$?' EXIT
 
 N_BACKUPS=30
-BACKUP_NUMBER=$(( ($(date +%j) / N_BACKUPS) % N_BACKUPS ))
+BACKUP_NUMBER=$(( $(date +%j) % N_BACKUPS ))
 
 cd /var/local
 tar -czf - homeassistant | sudo -H -u loguploader aws s3 cp - s3://itsshedtime-logs/hass_backups/backup_${BACKUP_NUMBER}.tar.gz
