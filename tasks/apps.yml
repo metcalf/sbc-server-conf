@@ -93,6 +93,33 @@
     group: root
     state: link
 
+# bots_n_scrapers service
+- name: Create bots_n_scrapers systemd service file
+  template:
+    src: bots_n_scrapers.service.j2
+    dest: /etc/systemd/system/bots_n_scrapers.service
+    owner: root
+    group: root
+    mode: '0644'
+  register: bots_n_scrapers_service_file
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  when: bots_n_scrapers_service_file.changed
+
+- name: Rotate bots_n_scrapers logs
+  template:
+    src: bots_n_scrapers.logrotate.conf.j2
+    dest: /etc/logrotate.d/bots_n_scrapers
+    mode: "0644"
+    validate: logrotate -d %s
+
+- name: Configure bots_n_scrapers service
+  systemd_service:
+    name: bots_n_scrapers
+    enabled: false
+
 - name: wake-xps script
   copy:
     src: files/wake-xps

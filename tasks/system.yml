@@ -14,6 +14,13 @@
   notify:
     - reload sshd
 
+- name: Generate non-root SSH host key
+  become: true
+  become_user: "{{ nonroot_login_user }}"
+  command : ssh-keygen -q -t ed25519 -f /home/{{ nonroot_login_user }}/.ssh/id_ed25519 -C "" -N ""
+  args:
+    creates: /home/{{ nonroot_login_user }}/.ssh/id_ed25519
+
 - name: install ufw
   apt:
     name: ufw

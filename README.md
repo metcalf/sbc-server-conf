@@ -24,10 +24,10 @@ Or remotely:
 ```
 ansible-playbook --inventory home-public.itsshedtime.com, playbook.yml --verbose
 ```
+* Add /home/andrew/.ssh/id_ed25519.pub to Github deploy keys as needed ([bots_n_scrapers](https://github.com/metcalf/bots_n_scrapers/settings/keys))
 
 TODO:
 * Install loggly, pagerduty
-* Manage starting services with systemd?
 * Set up log rotation
 * Manage loggly agent
 * Paging when services crash

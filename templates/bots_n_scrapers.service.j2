@@ -1,0 +1,23 @@
+[Unit]
+Description=bots_n_scrapers
+After=network.target
+
+[Service]
+Type=simple
+User={{ nonroot_login_user }}
+WorkingDirectory=/home/{{ nonroot_login_user }}/bots_n_scrapers
+Environment=HOME=/home/{{ nonroot_login_user }}
+# Ensure BASH_VERSION is set so we source the full environment
+Environment=BASH_VERSION=5.0
+# Use `bash -l` to ensure we get all the env vars we need
+ExecStart=/bin/bash -l -c 'export PATH="/home/andrew/.nodenv/bin:$PATH" && eval "$(nodenv init -)" && exec /home/{{ nonroot_login_user }}/bots_n_scrapers/run'
+ExecReload=/bin/kill -HUP $MAINPID
+
+Restart=no
+RestartSec=60
+
+StandardOutput=append:/var/log/bots_n_scrapers.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
