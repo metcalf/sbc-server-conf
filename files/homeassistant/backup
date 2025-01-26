@@ -6,10 +6,31 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-trap '/var/local/homeassistant/backup_heartbeat /$?' EXIT
+trap 'exit_code=$?; /var/local/homeassistant/backup_heartbeat /$exit_code; exit $exit_code' EXIT
 
 N_BACKUPS=30
 BACKUP_NUMBER=$(( $(date +%j) % N_BACKUPS ))
 
-cd /var/local
-tar -czf - homeassistant | sudo -H -u loguploader aws s3 cp - s3://itsshedtime-logs/hass_backups/backup_${BACKUP_NUMBER}.tar.gz
+BACKUP_FILE=$(find /var/local/homeassistant/backups -type f -mtime -1 -name '*.tar' -print -quit)
+if [ ! -n "$BACKUP_FILE" ]; then
+   echo "No files found" >&2
+   exit 3
+fi
+
+# Get file size in bytes
+FILE_SIZE=$(stat -c %s "$BACKUP_FILE")
+
+MAX_SIZE=$((100 * 1024 * 1024))
+
+if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
+   echo "Backup file too large: $FILE_SIZE bytes" >&2
+   exit 4
+fi
+
+if [ "$FILE_SIZE" -eq 0 ]; then
+   echo "Backup file is empty" >&2
+   exit 5
+fi
+
+# Home assistant's backup tar compresses all the data internally so no need to gzip here
+sudo -H -u loguploader aws s3 cp "$BACKUP_FILE" s3://itsshedtime-logs/hass_backups/backup_${BACKUP_NUMBER}.tar
