@@ -1,5 +1,10 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
+
+# Redirect output to syslog when not run in the terminal
+if [ ! -t 1 ]; then
+    exec 1> >(logger -t hass_backup) 2>&1
+fi
 
 if [ "$EUID" -ne 0 ]; then
     echo "run as root"
@@ -9,7 +14,8 @@ fi
 trap 'exit_code=$?; /var/local/homeassistant/backup_heartbeat /$exit_code; exit $exit_code' EXIT
 
 N_BACKUPS=30
-BACKUP_NUMBER=$(( $(date +%j) % N_BACKUPS ))
+# `10#` prefix is required to avoid a leading zero being interpreted as an octal number
+BACKUP_NUMBER=$(( 10#$(date +%j) % N_BACKUPS ))
 
 BACKUP_FILE=$(find /var/local/homeassistant/backups -type f -mtime -1 -name '*.tar' -print -quit)
 if [ ! -n "$BACKUP_FILE" ]; then
@@ -31,6 +37,8 @@ if [ "$FILE_SIZE" -eq 0 ]; then
    echo "Backup file is empty" >&2
    exit 5
 fi
+
+echo "Uploading ${BACKUP_FILE} to S3 as ${BACKUP_NUMBER}.tar"
 
 # Home assistant's backup tar compresses all the data internally so no need to gzip here
 sudo -H -u loguploader aws s3 cp "$BACKUP_FILE" s3://itsshedtime-logs/hass_backups/backup_${BACKUP_NUMBER}.tar
