@@ -47,6 +47,14 @@
     dest: /var/local/homeassistant/compose.yml
     mode: '0644'
 
+- name: Place configuration.yaml
+  copy:
+    src: files/homeassistant/configuration.yaml
+    dest: /var/local/homeassistant/configuration.yaml
+    mode: '0644'
+    owner: homeassistant
+    group: homeassistant
+
 - name: Cron for hass backup script
   copy:
     src: files/homeassistant/backup
