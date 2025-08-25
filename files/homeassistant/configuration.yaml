@@ -15,7 +15,8 @@ template:
     - unique_id: "on_vacation"
       name: "On Vacation"
       state: >
-        {{ states.climate.guestbedroom.attributes.target_temp_low == 60 }}
+        {{ states.climate.guestbedroom.attributes.target_temp_low == 60 and
+        (states.climate.shop_thermostat.attributes.target_temp_low == 60) }}
   - sensor:
     - name: "Custom thermostat API data"
       unique_id: "custom_thermostat_api_data"
