@@ -3,7 +3,7 @@ blueprint:
   description: >
     Implements a double tap event from Lutron RA3 keypads. Since RA3 doesn't emit double-tap events
     for "Scene" and "Zone" buttons, this blueprint simulates the behavior by detecting rapid button
-    presses and preserving the light states from after the first press.
+    presses and can restore lights to either first press state or preserve second press state.
 
   domain: automation
 
@@ -33,6 +33,18 @@ blueprint:
       default: "lutron_double_tap"
       selector:
         text:
+
+    double_tap_behavior:
+      name: "Double Tap Light Behavior"
+      description: "What to do with lights on double tap detection"
+      default: "preserve_second_press"
+      selector:
+        select:
+          options:
+            - label: "Preserve Second Press State (Current Behavior)"
+              value: "preserve_second_press"
+            - label: "Restore to First Press State"
+              value: "restore_first_press"
 
     transition_time:
       name: "Light Transition Time"
@@ -67,6 +79,15 @@ blueprint:
           step: 0.01
           unit_of_measurement: "s"
 
+    state_capture_helper:
+      name: "State Storage Helper (Optional)"
+      description: "Input text helper to store light states for first press restoration. Create an input_text helper if using 'restore_first_press' option."
+      default: ""
+      selector:
+        entity:
+          filter:
+            domain: input_text
+
     enable_logging:
       name: "Enable Detailed Logging"
       description: "Log single taps and double-tap prevention events"
@@ -95,10 +116,39 @@ variables:
   minimum_gap: !input minimum_gap
   light_entities: !input light_entities
   enable_logging: !input enable_logging
+  double_tap_behavior: !input double_tap_behavior
+  state_capture_helper: !input state_capture_helper
+
+  # Helper function to capture current light states
+  current_light_states: >
+    {% set states_dict = {} %}
+    {% for light in light_entities %}
+      {% set light_state = states(light) %}
+      {% set states_dict = dict(states_dict, **{light: {
+        'state': light_state,
+        'attributes': {
+          'brightness': state_attr(light, 'brightness'),
+        }
+      }}) %}
+    {% endfor %}
+    {{ states_dict }}
+
+  # Get stored states from helper (for first press restoration)
+  stored_light_states: >
+    {% if state_capture_helper != '' %}
+      {% set stored_data = states(state_capture_helper) %}
+      {% if stored_data != 'unknown' and stored_data != '' %}
+        {{ stored_data | from_json }}
+      {% else %}
+        {}
+      {% endif %}
+    {% else %}
+      {}
+    {% endif %}
 
 action:
   - choose:
-      # Double tap detected - immediately reinforce current states
+      # Double tap detected
       - conditions:
           - condition: template
             value_template: >
@@ -113,7 +163,7 @@ action:
                   name: "Lutron double tap detected"
                   message: >
                     Lutron double tap detected {{ trigger.entity_id }}
-                    ({{ time_diff | round(2) }}s gap)
+                    ({{ time_diff | round(2) }}s gap, behavior: {{ double_tap_behavior }})
 
           # Fire the custom event for other automations to use
           - event: "{{ event_name }}"
@@ -122,72 +172,93 @@ action:
               time_since_last_press: "{{ time_diff | round(3) }}"
               timestamp: "{{ current_timestamp }}"
               light_entities: "{{ light_entities }}"
+              behavior: "{{ double_tap_behavior }}"
 
-          # Immediately reinforce current state of each light
+          # Determine which states to restore to
+          - variables:
+              target_states: >
+                {% if double_tap_behavior == 'restore_first_press' and stored_light_states != {} %}
+                  {{ stored_light_states }}
+                {% else %}
+                  {{ current_light_states }}
+                {% endif %}
+              behavior_name: >
+                {% if double_tap_behavior == 'restore_first_press' and stored_light_states != {} %}
+                  first press
+                {% else %}
+                  second press
+                {% endif %}
+
+          - if:
+              - condition: template
+                value_template: "{{ enable_logging }}"
+            then:
+              - service: logbook.log
+                data:
+                  name: "Restoring light states"
+                  message: "Restoring lights to {{ behavior_name }} state for {{ trigger.entity_id }}"
+
+          # Single restoration sequence that works with any states dictionary
           - repeat:
               for_each: "{{ light_entities }}"
               sequence:
                 - variables:
                     light_entity: "{{ repeat.item }}"
-                    current_state: "{{ states(light_entity) }}"
+                    target_light_state: "{{ target_states.get(light_entity, {}) }}"
 
-                - choose:
-                    # Light is currently on - reinforce all current attributes
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ current_state == 'on' }}"
-                      sequence:
-                        - service: light.turn_on
-                          target:
-                            entity_id: "{{ light_entity }}"
-                          data: >
-                            {% set data = {} %}
-                            {% set brightness = state_attr(light_entity, 'brightness') %}
-                            {% set color_temp = state_attr(light_entity, 'color_temp') %}
-                            {% set hs_color = state_attr(light_entity, 'hs_color') %}
-                            {% set rgb_color = state_attr(light_entity, 'rgb_color') %}
-                            {% set xy_color = state_attr(light_entity, 'xy_color') %}
-                            {% set effect = state_attr(light_entity, 'effect') %}
-                            {% if brightness %}
-                              {% set data = dict(data, brightness=brightness) %}
-                            {% endif %}
-                            {% if color_temp %}
-                              {% set data = dict(data, color_temp=color_temp) %}
-                            {% endif %}
-                            {% if hs_color %}
-                              {% set data = dict(data, hs_color=hs_color) %}
-                            {% endif %}
-                            {% if rgb_color %}
-                              {% set data = dict(data, rgb_color=rgb_color) %}
-                            {% endif %}
-                            {% if xy_color %}
-                              {% set data = dict(data, xy_color=xy_color) %}
-                            {% endif %}
-                            {% if effect %}
-                              {% set data = dict(data, effect=effect) %}
-                            {% endif %}
-                            {% if transition_time > 0 %}
+                - if:
+                    - condition: template
+                      value_template: "{{ target_light_state != {} }}"
+                  then:
+                    - choose:
+                        # Restore to 'on' state with all attributes
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ target_light_state.get('state') == 'on' }}"
+                          sequence:
+                            - service: light.turn_on
+                              target:
+                                entity_id: "{{ light_entity }}"
+                              data: >
+                                {% set data = {} %}
+                                {% set attrs = target_light_state.get('attributes', {}) %}
+                                {% for attr_name, attr_value in attrs.items() %}
+                                  {% if attr_value is not none %}
+                                    {% set data = dict(data, **{attr_name: attr_value}) %}
+                                  {% endif %}
+                                {% endfor %}
+                                {% if transition_time > 0 %}
                                   {% set data = dict(data, transition=transition_time) %}
-                            {% endif %}
-                            {{ data }}
+                                {% endif %}
+                                {{ data }}
 
-                    # Light is currently off - reinforce off state
-                    - conditions:
-                        - condition: template
-                          value_template: "{{ current_state == 'off' }}"
-                      sequence:
-                        - service: light.turn_off
-                          target:
-                            entity_id: "{{ light_entity }}"
-                          data: >
-                              {% set data = {} %}
-                              {% if transition_time > 0 %}
-                                {% set data = dict(data, transition=transition_time) %}
-                              {% endif %}
-                              {{ data }}
+                        # Restore to 'off' state
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ target_light_state.get('state') == 'off' }}"
+                          sequence:
+                            - service: light.turn_off
+                              target:
+                                entity_id: "{{ light_entity }}"
+                              data: >
+                                {% set data = {} %}
+                                {% if transition_time > 0 %}
+                                  {% set data = dict(data, transition=transition_time) %}
+                                {% endif %}
+                                {{ data }}
 
-    # Single tap - optionally log it, otherwise do nothing
+    # Single tap - capture current light states for potential restoration
     default:
+      - if:
+          - condition: template
+            value_template: "{{ state_capture_helper != '' }}"
+        then:
+          - service: input_text.set_value
+            target:
+              entity_id: "{{ state_capture_helper }}"
+            data:
+              value: "{{ current_light_states | to_json }}"
+
       - if:
           - condition: template
             value_template: "{{ enable_logging }}"
