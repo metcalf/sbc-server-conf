@@ -1,0 +1,198 @@
+blueprint:
+  name: "Lutron Double Tap"
+  description: >
+    Implements a double tap event from Lutron RA3 keypads. Since RA3 doesn't emit double-tap events
+    for "Scene" and "Zone" buttons, this blueprint simulates the behavior by detecting rapid button
+    presses and preserving the light states from after the first press.
+
+  domain: automation
+
+  input:
+    button_entities:
+      name: "Buttons"
+      description: "The Lutron keypad button entity(s) to monitor"
+      selector:
+        entity:
+          filter:
+            domain:
+              - button
+          multiple: true
+
+    light_entities:
+      name: "Associated Lights"
+      description: "Lights controlled by this button (will be preserved on double-tap)"
+      selector:
+        entity:
+          filter:
+            domain: light
+          multiple: true
+
+    event_name:
+      name: "Double Tap Event Name"
+      description: "Name of the event to fire on double-tap (e.g., 'lutron_double_tap')"
+      default: "lutron_double_tap"
+      selector:
+        text:
+
+    transition_time:
+      name: "Light Transition Time"
+      description: "Transition time for light state changes (seconds). 0 = instant."
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10.0
+          step: 0.1
+          unit_of_measurement: "s"
+
+    double_tap_window:
+      name: "Double Tap Time Window"
+      description: "Maximum time between presses to consider it a double-tap (seconds)"
+      default: 1.0
+      selector:
+        number:
+          min: 0.2
+          max: 3.0
+          step: 0.1
+          unit_of_measurement: "s"
+
+    minimum_gap:
+      name: "Minimum Gap Between Presses"
+      description: "Minimum time between presses to avoid rapid-fire triggers (seconds)"
+      default: 0.05
+      selector:
+        number:
+          min: 0.01
+          max: 0.2
+          step: 0.01
+          unit_of_measurement: "s"
+
+    enable_logging:
+      name: "Enable Detailed Logging"
+      description: "Log single taps and double-tap prevention events"
+      default: true
+      selector:
+        boolean:
+
+# The automation template
+trigger:
+  - platform: state
+    entity_id: !input button_entities
+
+variables:
+  current_timestamp: "{{ as_timestamp(now()) }}"
+  last_press_time: >
+    {% set last_time = state_attr(this.entity_id, 'last_triggered') %}
+    {% if last_time == None %}
+      0
+    {% else %}
+      {{ as_timestamp(last_time) }}
+    {% endif %}
+  time_diff: "{{ current_timestamp - last_press_time }}"
+  button_entities: !input button_entities
+  transition_time: !input transition_time
+  double_tap_window: !input double_tap_window
+  minimum_gap: !input minimum_gap
+  light_entities: !input light_entities
+  enable_logging: !input enable_logging
+
+action:
+  - choose:
+      # Double tap detected - immediately reinforce current states
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ time_diff < double_tap_window and time_diff > minimum_gap }}
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ enable_logging }}"
+            then:
+              - service: logbook.log
+                data:
+                  name: "Lutron double tap detected"
+                  message: >
+                    Lutron double tap detected {{ trigger.entity_id }}
+                    ({{ time_diff | round(2) }}s gap)
+
+          # Fire the custom event for other automations to use
+          - event: "{{ event_name }}"
+            event_data:
+              button_entity: "{{ trigger.entity_id }}"
+              time_since_last_press: "{{ time_diff | round(3) }}"
+              timestamp: "{{ current_timestamp }}"
+              light_entities: "{{ light_entities }}"
+
+          # Immediately reinforce current state of each light
+          - repeat:
+              for_each: "{{ light_entities }}"
+              sequence:
+                - variables:
+                    light_entity: "{{ repeat.item }}"
+                    current_state: "{{ states(light_entity) }}"
+
+                - choose:
+                    # Light is currently on - reinforce all current attributes
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ current_state == 'on' }}"
+                      sequence:
+                        - service: light.turn_on
+                          target:
+                            entity_id: "{{ light_entity }}"
+                          data: >
+                            {% set data = {} %}
+                            {% set brightness = state_attr(light_entity, 'brightness') %}
+                            {% set color_temp = state_attr(light_entity, 'color_temp') %}
+                            {% set hs_color = state_attr(light_entity, 'hs_color') %}
+                            {% set rgb_color = state_attr(light_entity, 'rgb_color') %}
+                            {% set xy_color = state_attr(light_entity, 'xy_color') %}
+                            {% set effect = state_attr(light_entity, 'effect') %}
+                            {% if brightness %}
+                              {% set data = dict(data, brightness=brightness) %}
+                            {% endif %}
+                            {% if color_temp %}
+                              {% set data = dict(data, color_temp=color_temp) %}
+                            {% endif %}
+                            {% if hs_color %}
+                              {% set data = dict(data, hs_color=hs_color) %}
+                            {% endif %}
+                            {% if rgb_color %}
+                              {% set data = dict(data, rgb_color=rgb_color) %}
+                            {% endif %}
+                            {% if xy_color %}
+                              {% set data = dict(data, xy_color=xy_color) %}
+                            {% endif %}
+                            {% if effect %}
+                              {% set data = dict(data, effect=effect) %}
+                            {% endif %}
+                            {% if transition_time > 0 %}
+                                  {% set data = dict(data, transition=transition_time) %}
+                            {% endif %}
+                            {{ data }}
+
+                    # Light is currently off - reinforce off state
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ current_state == 'off' }}"
+                      sequence:
+                        - service: light.turn_off
+                          target:
+                            entity_id: "{{ light_entity }}"
+                          data: >
+                              {% set data = {} %}
+                              {% if transition_time > 0 %}
+                                {% set data = dict(data, transition=transition_time) %}
+                              {% endif %}
+                              {{ data }}
+
+    # Single tap - optionally log it, otherwise do nothing
+    default:
+      - if:
+          - condition: template
+            value_template: "{{ enable_logging }}"
+        then:
+          - service: logbook.log
+            data:
+              name: "Single Tap"
+              message: "Single tap detected for {{ trigger.entity_id }}"
