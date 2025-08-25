@@ -28,20 +28,6 @@
   become: true
   become_user: "{{ nonroot_login_user }}"
 
-- name: Configure bash extension
-  command:
-    cmd: src/configure
-    chdir: "{{ nodenv_root }}"
-  become: true
-  become_user: "{{ nonroot_login_user }}"
-
-- name: Compile bash extension
-  command:
-    cmd: make -C src
-    chdir: "{{ nodenv_root }}"
-  become: true
-  become_user: "{{ nonroot_login_user }}"
-
 - name: Setup nodenv in .bashrc
   blockinfile:
     marker: "### {mark} ANSIBLE MANAGED BLOCK - NODENV ###"
