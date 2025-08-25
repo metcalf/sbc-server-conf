@@ -46,7 +46,7 @@
   template:
     src: templates/mila_ctrl_cron.j2
     dest: /usr/local/bin/mila_ctrl_cron
-    mode: "0700"
+    mode: "0600" # NOTE: Disabled, add execute permission to enable
 
 - name: Run mila control via cron every 5 minutes
   copy:
