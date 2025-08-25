@@ -2,6 +2,7 @@ backups/
 secrets.yml
 playbook.retry
 .uuid
+.ansible
 
 # Logs and databases #
 ######################

@@ -55,6 +55,16 @@
     owner: homeassistant
     group: homeassistant
 
+- name: Place blueprints
+  copy:
+    src: files/homeassistant/blueprints/{{item}}/
+    dest: /var/local/homeassistant/blueprints/{{item}}/sbc-server-conf/
+    mode: '0644'
+    owner: homeassistant
+    group: homeassistant
+  with_list:
+    - automation
+
 - name: Cron for hass backup script
   copy:
     src: files/homeassistant/backup
