@@ -12,7 +12,7 @@ blueprint:
   input:
     button_entities:
       name: "Buttons"
-      description: "The Lutron keypad button entity(s) to monitor (used for name matching and light control)"
+      description: "The Lutron keypad button entity(s) to monitor"
       selector:
         entity:
           filter:
@@ -29,35 +29,19 @@ blueprint:
             domain: light
           multiple: true
 
+    triggered_action:
+      name: Triggered actions
+      description: Actions that should be executed on double-tap
+      default: []
+      selector:
+        action: {}
+
     event_name:
       name: "Double Tap Event Name"
-      description: "Name of the event to fire on double-tap (e.g., 'lutron_double_tap')"
-      default: "lutron_double_tap"
+      description: "Name of the event to fire on double-tap"
+      default: ""
       selector:
         text:
-
-    double_tap_behavior:
-      name: "Double Tap Light Behavior"
-      description: "What to do with lights on double tap detection"
-      default: "restore_first_press"
-      selector:
-        select:
-          options:
-            - label: "Suppress Lutron action (restore lights to state at first press)"
-              value: "restore_first_press"
-            - label: "[BUGGY!]Run Lutron action (set lights to state after first press)"
-              value: "preserve_second_press"
-
-    transition_time:
-      name: "Light Transition Time"
-      description: "Transition time for light state changes (seconds). 0 = instant."
-      default: 0.5
-      selector:
-        number:
-          min: 0
-          max: 10.0
-          step: 0.1
-          unit_of_measurement: "s"
 
     double_tap_window:
       name: "Double Tap Time Window"
@@ -106,12 +90,11 @@ trigger:
 variables:
   current_timestamp: "{{ as_timestamp(trigger.event.time_fired) }}"
   button_entities: !input button_entities
-  transition_time: !input transition_time
+  event_name: !input event_name
   double_tap_window: !input double_tap_window
   minimum_gap: !input minimum_gap
   light_entities: !input light_entities
   enable_logging: !input enable_logging
-  double_tap_behavior: !input double_tap_behavior
   storage_helper: !input storage_helper
 
   # Construct the button name from event data to match with entities
@@ -120,9 +103,9 @@ variables:
 
   # Find the matching button entity
   matching_button_entity: >
-    {% set event_name = trigger.event.data.area_name ~ " " ~ trigger.event.data.device_name ~ " " ~ trigger.event.data.button_type %}
+    {% set button_event_name = trigger.event.data.area_name ~ " " ~ trigger.event.data.device_name ~ " " ~ trigger.event.data.button_type %}
     {% for button in button_entities %}
-      {% if state_attr(button, 'friendly_name') == event_name %}
+      {% if state_attr(button, 'friendly_name') == button_event_name %}
         {{ button }}
         {% break %}
       {% endif %}
@@ -164,14 +147,26 @@ action:
   - condition: template
     value_template: "{{ matching_button_entity != '' }}"
 
-  - choose:
-      # Double tap detected
-      - conditions:
+  - if:
+      - condition: template
+        value_template: >
+          {{ time_diff < double_tap_window and time_diff > minimum_gap }}
+    # Double tap detected
+    then:
+      - if:
           - condition: template
-            value_template: >
-              {{ time_diff < double_tap_window and time_diff > minimum_gap }}
-        sequence:
-          # Fire the custom event for other automations to use
+            value_template: "{{ enable_logging }}"
+        then:
+          - service: logbook.log
+            data:
+              name: "Lutron double tap"
+              message: "Lutron double tap detected {{ matching_button_entity }}. Setting lights to original brightness for {{ matching_button_entity }}"
+
+      # Fire the custom event for other automations to use
+      - if:
+          - condition: template
+            value_template: "{{ event_name != '' }}"
+        then:
           - event: "{{ event_name }}"
             event_data:
               button_entity: "{{ matching_button_entity }}"
@@ -179,80 +174,52 @@ action:
               time_since_last_press: "{{ time_diff | round(3) }}"
               timestamp: "{{ current_timestamp }}"
               light_entities: "{{ light_entities }}"
-              behavior: "{{ double_tap_behavior }}"
 
-          - variables:
-              behavior_name: >
-                {% if double_tap_behavior == 'restore_first_press' and stored_light_brightness != {} %}
-                  original
-                {% else %}
-                  pressed scene
-                {% endif %}
+      # Restore brightness for each light to original values
+      - repeat:
+          for_each: "{{ light_entities }}"
+          sequence:
+            - variables:
+                light_entity: "{{ repeat.item }}"
+                target_brightness_value: "{{ stored_light_brightness.get(light_entity) }}"
 
-          - if:
-              - condition: template
-                value_template: "{{ enable_logging }}"
-            then:
-              - service: logbook.log
-                data:
-                  name: "Lutron double tap"
-                  message: "Lutron double tap detected {{ matching_button_entity }}. Setting lights to {{ behavior_name }} brightness for {{ matching_button_entity }}"
+            - if:
+                - condition: template
+                  value_template: "{{ target_brightness_value is not none }}"
+              then:
+                # Turn on with brightness
+                - if:
+                    - condition: template
+                      value_template: "{{ enable_logging }}"
+                  then:
+                    - service: logbook.log
+                      data:
+                        name: "Lutron double tap light set"
+                        message: "Lutron double tap setting {{ light_entity }} to brightness {{ target_brightness_value }}"
 
-          - if:
-              - condition: template
-                value_template: "{{ double_tap_behavior == 'restore_first_press' }}"
-            # Restore brightness for each light to original values
-            then:
-              - repeat:
-                  for_each: "{{ light_entities }}"
-                  sequence:
-                    - variables:
-                        light_entity: "{{ repeat.item }}"
-                        target_brightness_value: "{{ target_brightness.get(light_entity) }}"
+                - if:
+                    - condition: template
+                      value_template: "{{ target_brightness_value | int > 0 }}"
+                  then:
+                    - service: light.turn_on
+                      target:
+                        entity_id: "{{ light_entity }}"
+                      data: >
+                        {% set data = {"brightness": target_brightness_value | int} %}
+                        {{ data }}
+                  # Turn off
+                  else:
+                    - service: light.turn_off
+                      target:
+                        entity_id: "{{ light_entity }}"
 
-                    - if:
-                        - condition: template
-                          value_template: "{{ target_brightness_value is not none }}"
-                      then:
-                        - choose:
-                            # Turn on with brightness
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ target_brightness_value | int > 0 }}"
-                              sequence:
-                                - service: light.turn_on
-                                  target:
-                                    entity_id: "{{ light_entity }}"
-                                  data: >
-                                    {% set data = {"brightness": target_brightness_value | int} %}
-                                    {% if transition_time > 0 %}
-                                      {% set data = dict(data, transition=transition_time) %}
-                                    {% endif %}
-                                    {{ data }}
+      # Trigger actions (only if provided)
+      - alias: "Run the actions"
+        choose: []
+        default: !input triggered_action
 
-                            # Turn off
-                            - conditions:
-                                - condition: template
-                                  value_template: "{{ target_brightness_value | int == 0 }}"
-                              sequence:
-                                - service: light.turn_off
-                                  target:
-                                    entity_id: "{{ light_entity }}"
-                                  data: >
-                                    {% set data = {} %}
-                                    {% if transition_time > 0 %}
-                                      {% set data = dict(data, transition=transition_time) %}
-                                    {% endif %}
-                                    {{ data }}
-            # Simulate a 3rd button press to achieve the result of a single press
-            else:
-              - service: button.press
-                data: {}
-                target:
-                  entity_id: "{{ matching_button_entity }}"
-
-    # Single tap - data already stored above
-    default:
+    else:
+      # Log single tap
       - if:
           - condition: template
             value_template: "{{ enable_logging }}"

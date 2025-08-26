@@ -1,0 +1,408 @@
+automation:
+- alias: Lutron Double Tap - Kitchen - 1 (Bright)
+  description: ''
+  id: 2f_double_tap_kitchen_1
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_kitchen_back_door_position_2_keypad_kitchen_bright
+      - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_bright
+      - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_kitchen_bright
+      enable_logging: true
+      light_entities: &id001
+      - light.2nd_floor_kitchen_downlightslight.2nd_floor_kitchen_island_pendantlight.2nd_floor_kitchen_undercabinet
+      storage_helper: input_text.lutron_double_tap_2f_kitchen_1
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_dining_rm_bright
+          - button.equipment_phantom_position_1_keypad_family_room_bright
+          - button.equipment_phantom_position_1_keypad_living_rm_bright
+          - button.equipment_phantom_position_1_keypad_hall_bright
+          - button.equipment_phantom_position_1_keypad_lower_stair_bright
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Kitchen - 2 (Ambient)
+  description: ''
+  id: 2f_double_tap_kitchen_2
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_kitchen_back_door_position_2_keypad_ambient
+      - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_ambient
+      - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_ambient
+      enable_logging: true
+      light_entities: *id001
+      storage_helper: input_text.lutron_double_tap_2f_kitchen_2
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_dining_rm_ambient
+          - button.equipment_phantom_position_1_keypad_family_room_ambien
+          - button.equipment_phantom_position_1_keypad_living_rm_ambient
+          - button.equipment_phantom_position_1_keypad_hall_ambient
+          - button.equipment_phantom_position_1_keypad_lower_stair_ambien
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Kitchen - 3 (Eat)
+  description: ''
+  id: 2f_double_tap_kitchen_3
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_kitchen_back_door_position_2_keypad_morning
+      - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_eat
+      - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_morning
+      enable_logging: true
+      light_entities: *id001
+      storage_helper: input_text.lutron_double_tap_2f_kitchen_3
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_dining_rm_eat
+          - button.equipment_phantom_position_1_keypad_family_rm_evening
+          - button.equipment_phantom_position_1_keypad_living_rm_evening
+          - button.equipment_phantom_position_1_keypad_hall_evening
+          - button.equipment_phantom_position_1_keypad_lower_stair_evenin
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Kitchen - 4 (Dim)
+  description: ''
+  id: 2f_double_tap_kitchen_4
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_kitchen_back_door_position_2_keypad_eat
+      - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_dim
+      - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_eat
+      enable_logging: true
+      light_entities: *id001
+      storage_helper: input_text.lutron_double_tap_2f_kitchen_4
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_dining_rm_dim
+          - button.equipment_phantom_position_1_keypad_family_room_dim
+          - button.equipment_phantom_position_1_keypad_living_rm_dim
+          - button.equipment_phantom_position_1_keypad_hall_dim
+          - button.equipment_phantom_position_1_keypad_lower_stair_dim
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Dining - 1 (Bright)
+  description: ''
+  id: 2f_double_tap_dining_1
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_bright
+      enable_logging: true
+      light_entities: &id002
+      - light.2nd_floor_dining_room_chandelier
+      - light.2nd_floor_dining_room_skylight
+      storage_helper: input_text.lutron_double_tap_2f_dining_1
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_bright
+          - button.equipment_phantom_position_1_keypad_family_room_bright
+          - button.equipment_phantom_position_1_keypad_living_rm_bright
+          - button.equipment_phantom_position_1_keypad_hall_bright
+          - button.equipment_phantom_position_1_keypad_lower_stair_bright
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Dining - 2 (Ambient)
+  description: ''
+  id: 2f_double_tap_dining_2
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_ambient
+      enable_logging: true
+      light_entities: *id002
+      storage_helper: input_text.lutron_double_tap_2f_dining_2
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_ambient
+          - button.equipment_phantom_position_1_keypad_family_room_ambien
+          - button.equipment_phantom_position_1_keypad_living_rm_ambient
+          - button.equipment_phantom_position_1_keypad_hall_ambient
+          - button.equipment_phantom_position_1_keypad_lower_stair_ambien
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Dining - 3 (Eat)
+  description: ''
+  id: 2f_double_tap_dining_3
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_dim
+      enable_logging: true
+      light_entities: *id002
+      storage_helper: input_text.lutron_double_tap_2f_dining_3
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_eat
+          - button.equipment_phantom_position_1_keypad_family_rm_evening
+          - button.equipment_phantom_position_1_keypad_living_rm_evening
+          - button.equipment_phantom_position_1_keypad_hall_evening
+          - button.equipment_phantom_position_1_keypad_lower_stair_evenin
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Dining - 4 (Dim)
+  description: ''
+  id: 2f_double_tap_dining_4
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_others_dim
+      enable_logging: true
+      light_entities: *id002
+      storage_helper: input_text.lutron_double_tap_2f_dining_4
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_dim
+          - button.equipment_phantom_position_1_keypad_family_room_dim
+          - button.equipment_phantom_position_1_keypad_living_rm_dim
+          - button.equipment_phantom_position_1_keypad_hall_dim
+          - button.equipment_phantom_position_1_keypad_lower_stair_dim
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Family - 1 (Bright)
+  description: ''
+  id: 2f_double_tap_family_1
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_bright
+      enable_logging: true
+      light_entities: &id003
+      - light.2nd_floor_family_room_downlights
+      storage_helper: input_text.lutron_double_tap_2f_family_1
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_bright
+          - button.equipment_phantom_position_1_keypad_dining_rm_bright
+          - button.equipment_phantom_position_1_keypad_living_rm_bright
+          - button.equipment_phantom_position_1_keypad_hall_bright
+          - button.equipment_phantom_position_1_keypad_lower_stair_bright
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Family - 2 (Ambient)
+  description: ''
+  id: 2f_double_tap_family_2
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_ambient
+      enable_logging: true
+      light_entities: *id003
+      storage_helper: input_text.lutron_double_tap_2f_family_2
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_ambient
+          - button.equipment_phantom_position_1_keypad_dining_rm_ambient
+          - button.equipment_phantom_position_1_keypad_living_rm_ambient
+          - button.equipment_phantom_position_1_keypad_hall_ambient
+          - button.equipment_phantom_position_1_keypad_lower_stair_ambien
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Family - 3 (Evening)
+  description: ''
+  id: 2f_double_tap_family_3
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_dim
+      enable_logging: true
+      light_entities: *id003
+      storage_helper: input_text.lutron_double_tap_2f_family_3
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_eat
+          - button.equipment_phantom_position_1_keypad_dining_rm_eat
+          - button.equipment_phantom_position_1_keypad_living_rm_evening
+          - button.equipment_phantom_position_1_keypad_hall_evening
+          - button.equipment_phantom_position_1_keypad_lower_stair_evenin
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Family - 4 (Dim)
+  description: ''
+  id: 2f_double_tap_family_4
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_family_room_by_stairs_position_1_keypad_others_dim
+      enable_logging: true
+      light_entities: *id003
+      storage_helper: input_text.lutron_double_tap_2f_family_4
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_dim
+          - button.equipment_phantom_position_1_keypad_dining_rm_dim
+          - button.equipment_phantom_position_1_keypad_living_rm_dim
+          - button.equipment_phantom_position_1_keypad_hall_dim
+          - button.equipment_phantom_position_1_keypad_lower_stair_dim
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Living - 1 (Bright)
+  description: ''
+  id: 2f_double_tap_living_1
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_living_room_entry_wall_position_1_keypad_bright
+      enable_logging: true
+      light_entities: &id004
+      - light.2nd_floor_living_room_chandelier
+      - light.2nd_floor_living_room_downlights
+      storage_helper: input_text.lutron_double_tap_2f_living_1
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_bright
+          - button.equipment_phantom_position_1_keypad_dining_rm_bright
+          - button.equipment_phantom_position_1_keypad_family_room_bright
+          - button.equipment_phantom_position_1_keypad_hall_bright
+          - button.equipment_phantom_position_1_keypad_lower_stair_bright
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Living - 2 (Ambient)
+  description: ''
+  id: 2f_double_tap_living_2
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_living_room_entry_wall_position_1_keypad_ambient
+      enable_logging: true
+      light_entities: *id004
+      storage_helper: input_text.lutron_double_tap_2f_living_2
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_ambient
+          - button.equipment_phantom_position_1_keypad_dining_rm_ambient
+          - button.equipment_phantom_position_1_keypad_family_room_ambien
+          - button.equipment_phantom_position_1_keypad_hall_ambient
+          - button.equipment_phantom_position_1_keypad_lower_stair_ambien
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Living - 3 (Evening)
+  description: ''
+  id: 2f_double_tap_living_3
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_living_room_entry_wall_position_1_keypad_dim
+      enable_logging: true
+      light_entities: *id004
+      storage_helper: input_text.lutron_double_tap_2f_living_3
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_eat
+          - button.equipment_phantom_position_1_keypad_dining_rm_eat
+          - button.equipment_phantom_position_1_keypad_family_rm_evening
+          - button.equipment_phantom_position_1_keypad_hall_evening
+          - button.equipment_phantom_position_1_keypad_lower_stair_evenin
+    path: sbc-server-conf/lutron_double_tap.yaml
+- alias: Lutron Double Tap - Living - 4 (Dim)
+  description: ''
+  id: 2f_double_tap_living_4
+  use_blueprint:
+    input:
+      button_entities:
+      - button.2nd_floor_living_room_entry_wall_position_1_keypad_others_dim
+      enable_logging: true
+      light_entities: *id004
+      storage_helper: input_text.lutron_double_tap_2f_living_4
+      triggered_action:
+      - action: button.press
+        target:
+          entity_id:
+          - button.equipment_phantom_position_1_keypad_kitchen_dim
+          - button.equipment_phantom_position_1_keypad_dining_rm_dim
+          - button.equipment_phantom_position_1_keypad_family_room_dim
+          - button.equipment_phantom_position_1_keypad_hall_dim
+          - button.equipment_phantom_position_1_keypad_lower_stair_dim
+    path: sbc-server-conf/lutron_double_tap.yaml
+input_text:
+  lutron_double_tap_2f_dining_1:
+    max: 255
+    name: Lutron Double Tap - Dining - 1 (Bright)
+  lutron_double_tap_2f_dining_2:
+    max: 255
+    name: Lutron Double Tap - Dining - 2 (Ambient)
+  lutron_double_tap_2f_dining_3:
+    max: 255
+    name: Lutron Double Tap - Dining - 3 (Eat)
+  lutron_double_tap_2f_dining_4:
+    max: 255
+    name: Lutron Double Tap - Dining - 4 (Dim)
+  lutron_double_tap_2f_family_1:
+    max: 255
+    name: Lutron Double Tap - Family - 1 (Bright)
+  lutron_double_tap_2f_family_2:
+    max: 255
+    name: Lutron Double Tap - Family - 2 (Ambient)
+  lutron_double_tap_2f_family_3:
+    max: 255
+    name: Lutron Double Tap - Family - 3 (Evening)
+  lutron_double_tap_2f_family_4:
+    max: 255
+    name: Lutron Double Tap - Family - 4 (Dim)
+  lutron_double_tap_2f_hall_1:
+    max: 255
+    name: Lutron Double Tap - Hall - 1 (Bright)
+  lutron_double_tap_2f_hall_2:
+    max: 255
+    name: Lutron Double Tap - Hall - 2 (Ambient)
+  lutron_double_tap_2f_hall_3:
+    max: 255
+    name: Lutron Double Tap - Hall - 3 (Evening)
+  lutron_double_tap_2f_hall_4:
+    max: 255
+    name: Lutron Double Tap - Hall - 4 (Dim)
+  lutron_double_tap_2f_kitchen_1:
+    max: 255
+    name: Lutron Double Tap - Kitchen - 1 (Bright)
+  lutron_double_tap_2f_kitchen_2:
+    max: 255
+    name: Lutron Double Tap - Kitchen - 2 (Ambient)
+  lutron_double_tap_2f_kitchen_3:
+    max: 255
+    name: Lutron Double Tap - Kitchen - 3 (Eat)
+  lutron_double_tap_2f_kitchen_4:
+    max: 255
+    name: Lutron Double Tap - Kitchen - 4 (Dim)
+  lutron_double_tap_2f_living_1:
+    max: 255
+    name: Lutron Double Tap - Living - 1 (Bright)
+  lutron_double_tap_2f_living_2:
+    max: 255
+    name: Lutron Double Tap - Living - 2 (Ambient)
+  lutron_double_tap_2f_living_3:
+    max: 255
+    name: Lutron Double Tap - Living - 3 (Evening)
+  lutron_double_tap_2f_living_4:
+    max: 255
+    name: Lutron Double Tap - Living - 4 (Dim)
+  lutron_double_tap_2f_lower_stair_1:
+    max: 255
+    name: Lutron Double Tap - Lower_Stair - 1 (Bright)
+  lutron_double_tap_2f_lower_stair_2:
+    max: 255
+    name: Lutron Double Tap - Lower_Stair - 2 (Ambient)
+  lutron_double_tap_2f_lower_stair_3:
+    max: 255
+    name: Lutron Double Tap - Lower_Stair - 3 (Evening)
+  lutron_double_tap_2f_lower_stair_4:
+    max: 255
+    name: Lutron Double Tap - Lower_Stair - 4 (Dim)
