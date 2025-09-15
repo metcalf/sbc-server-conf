@@ -98,6 +98,12 @@
     heartbeat_url: https://hc-ping.com/4c37fdea-e447-4963-bd7c-28abb2269fcb
     heartbeat_status_arg: $1
 
+- name: Allow Sonos push connections
+  community.general.ufw:
+    rule: allow
+    port: 1400
+    proto: tcp
+
 - name: Start docker
   systemd_service:
     name: docker
