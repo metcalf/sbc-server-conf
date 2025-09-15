@@ -1,7 +1,7 @@
 ---
 - name: Configure it all
   hosts: all
-  remote_user: root
+  remote_user: andrew
   become: true
   vars:
     ansible_remote_tmp: /tmp/ansible/tmp

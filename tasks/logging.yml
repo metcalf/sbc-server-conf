@@ -1,41 +1,10 @@
 ---
-# Disable armbian-ramlog. The interaction of their implementation with log rotation is
-# buggy as hell and not worth the trouble. Better to just replace the SD card when it
-# wears out from the extra writes.
-# We only use zram for ramlog so we can disable that too
-- name: disable armbian-ramlog and armbian-zram-config
-  lineinfile:
-    path: "{{item}}"
-    search_string: 'ENABLED='
-    line: 'ENABLED=false'
-  notify: reboot
-  with_list:
-    - /etc/default/armbian-ramlog
-    - /etc/default/armbian-zram-config
-
-# armbian's logrotate.d configurations point to log.hdd so create a symlink
-# so that we don't have to edit all those configurations. Ansible won't
-# link a directory with contents, so we have to unmount it first.
-- name: unmount /var/log.hdd
-  mount:
-    path: /var/log.hdd
-    state: unmounted
-
-- name: link /var/log.hdd
-  file:
-    src: /var/log
-    dest: /var/log.hdd
-    owner: root
-    group: syslog
-    state: link
-    force: true # convert directory to symlink
-
-- name: rsyslogd disable RepeatedMsgReduction
-  lineinfile:
-    path: /etc/rsyslog.conf
-    search_string: '$RepeatedMsgReduction on'
-    line: '#$RepeatedMsgReduction on'
-  notify: restart rsyslogd
+- name: Install dependencies
+  apt:
+    name:
+      - rsyslog
+      - snapd
+    state: present
 
 - name: rsyslogd remote config
   copy:
@@ -54,7 +23,7 @@
 - name: create remote log directory with correct permissions
   file:
     path: /var/log/remote
-    owner: syslog
+    owner: root
     group: loguploader
     mode: "0750"
     state: directory

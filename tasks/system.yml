@@ -21,17 +21,12 @@
   args:
     creates: /home/{{ nonroot_login_user }}/.ssh/id_ed25519
 
-- name: install ufw
+- name: install dependencies
   apt:
-    name: ufw
+    name:
+      - ufw # For firewall
+      - acl # Ansible needs this for some `become` stuff
     state: present
-
-# Logging breaks things for some reason, probably need to install the correct
-# kernel module but didn't feel like debugging it.
-# TODO: Is this still an issue on 24.04?
-- name: Disable firewall logging
-  community.general.ufw:
-    logging: 'off'
 
 # ufw supports connection rate limiting, which is useful for protecting
 # against brute-force login attacks. ufw will deny connections if an IP
@@ -57,20 +52,3 @@
 - name: Enable UFW
   community.general.ufw:
     state: enabled
-
-# Stop sysstat since it wastes log space/writes
-- name: uninstall sysstat
-  package:
-    name: sysstat
-    state: absent
-
-- name: remove sysstat logs
-  file:
-    path: /var/log/sysstat
-    state: absent
-
-- name: Install snapd
-  apt:
-    name:
-      - snapd
-    state: present

@@ -4,9 +4,10 @@
     name:
       - python3
       - python3-pip # Had to run apt-get update manually when I installed this for some reason
-      - python3-requests # Latest Ubuntu doesn't like using pip on system-wide Python
+      - python3-requests # OS doesn't like using pip on system-wide Python
       - moreutils
       - nodejs
+      - git
     state: present
 
 # Nodenv
@@ -61,23 +62,24 @@
     mode: "0644"
     validate: logrotate -d %s
 
+# TODO: This needs to be updated since switching to Raspberry Pi but I'm not using it at the moment
 # tdlib for the Telegram api
 # to build follow https://tdlib.github.io/td/build.html?language=JavaScript, follow instruction to only build tdjson/tdjson_static https://github.com/tdlib/td/tree/master?tab=readme-ov-file#building
-- name: libtdjson
-  copy:
-    src: files/libtdjson.so.1.8.25-arm64
-    dest: /usr/local/lib/libtdjson.so.1.8.25
-    mode: "0755"
-    owner: root
-    group: root
+# - name: libtdjson
+#   copy:
+#     src: files/libtdjson.so.1.8.25-arm64
+#     dest: /usr/local/lib/libtdjson.so.1.8.25
+#     mode: "0755"
+#     owner: root
+#     group: root
 
-- name: libtdjson link
-  file:
-    src: /usr/local/lib/libtdjson.so.1.8.25
-    dest: /usr/local/lib/libtdjson.so
-    owner: root
-    group: root
-    state: link
+# - name: libtdjson link
+#   file:
+#     src: /usr/local/lib/libtdjson.so.1.8.25
+#     dest: /usr/local/lib/libtdjson.so
+#     owner: root
+#     group: root
+#     state: link
 
 # bots_n_scrapers service
 - name: Create bots_n_scrapers systemd service file
