@@ -11,8 +11,8 @@ areas = [
     {
         "name": "kitchen",
         "light_entities": [
-            "light.2nd_floor_kitchen_downlights"
-            "light.2nd_floor_kitchen_island_pendant"
+            "light.2nd_floor_kitchen_downlights",
+            "light.2nd_floor_kitchen_island_pendant",
             "light.2nd_floor_kitchen_undercabinet"
         ],
         "friendly_names": [
@@ -42,6 +42,24 @@ areas = [
                 "button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_dim",
                 "button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_eat",
             ],
+        ],
+        "extra_triggers": [
+            [{
+                "device_id": "4e26b4960c904eed2cb2201650905ebc",
+                "leap_button_number": 1,
+            }],
+            [{
+                "device_id": "4e26b4960c904eed2cb2201650905ebc",
+                "leap_button_number": 2,
+            }],
+            [{
+                "device_id": "4e26b4960c904eed2cb2201650905ebc",
+                "leap_button_number": 3,
+            }],
+            [{
+                "device_id": "4e26b4960c904eed2cb2201650905ebc",
+                "leap_button_number": 4,
+            }],
         ],
         "action_buttons": [
             "button.equipment_phantom_position_1_keypad_kitchen_bright",
@@ -204,16 +222,36 @@ for area in areas:
         if not trigger_buttons:
             continue
 
+        extra_triggers = []
+        if "extra_triggers" in area:
+            for trigger in area["extra_triggers"][i]:
+                # Aiming for something like:
+                #- trigger: event
+                #  event_type: lutron_caseta_button_event
+                #  event_data:
+                #    action: press
+                #    type: foo
+                extra_triggers.append({
+                    "trigger": "event",
+                    "event_type": "lutron_caseta_button_event",
+                    "event_data": {
+                        "action": "press",
+                        **trigger
+                    }
+                })
+
         automation = {
             "id": f"2f_double_tap_{area['name']}_{idx}",
             "alias": name,
             "description": "",
+            "mode": "queued",
             "use_blueprint": {
                 "path": "sbc-server-conf/lutron_double_tap.yaml",
                 "input": {
                     "button_entities": trigger_buttons,
-                    "light_entities": area["light_entities"],
-                    "enable_logging": True,
+                    "extra_triggers": extra_triggers,
+                    "light_entities": list(area["light_entities"]),
+                    "enable_logging": False,
                     "storage_helper": f"input_text.{storage_helper}",
                     "triggered_action": [
                         {

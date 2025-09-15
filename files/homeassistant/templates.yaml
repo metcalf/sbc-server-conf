@@ -1,0 +1,43 @@
+- binary_sensor:
+  - unique_id: "on_vacation"
+    name: "On Vacation"
+    state: >
+      {{ states.climate.guestbedroom.attributes.target_temp_low == 60 and
+      (states.climate.shop_thermostat.attributes.target_temp_low == 60) }}
+- sensor:
+  - name: "Custom thermostat API data"
+    unique_id: "custom_thermostat_api_data"
+    state: >
+      001
+      {{ 1 if is_state('binary_sensor.on_vacation', 'on') else 0 }}
+      {{ "{:05.1f}".format(min(999, max(0, states.sensor.most_recent_local_weather.state | float(0) + 100.0))) }}
+      {{ "{:010d}".format(states.sensor.most_recent_local_weather.attributes.epoch | int(0)) }}
+
+- trigger:
+    - platform: time_pattern
+      hours: /1
+    - platform: homeassistant
+      event: start
+  action:
+    - action: weather.get_forecasts
+      data:
+        type: daily
+      target:
+        entity_id: weather.openweathermap
+      response_variable: daily
+  sensor:
+    - name: Weather Forecast - Today
+      unique_id: weather_forecast_today
+      state: "{{ daily['weather.openweathermap'].forecast[0].datetime }}"
+      attributes:
+        condition: "{{ daily['weather.openweathermap'].forecast[0].condition }}"
+        temperature: "{{ daily['weather.openweathermap'].forecast[0].temperature }}"
+        temp_low: "{{ daily['weather.openweathermap'].forecast[0].templow }}"
+        precipitation: "{{ daily['weather.openweathermap'].forecast[0].precipitation }}"
+        precipitation_probability: "{{ daily['weather.openweathermap'].forecast[0].precipitation_probability }}"
+        wind_bearing: "{{ daily['weather.openweathermap'].forecast[0].wind_bearing }}"
+        wind_speed: "{{ daily['weather.openweathermap'].forecast[0].wind_speed }}"
+        humidity: "{{ daily['weather.openweathermap'].forecast[0].humidity }}"
+        pressure: "{{ daily['weather.openweathermap'].forecast[0].pressure }}"
+        visibility: "{{ daily['weather.openweathermap'].forecast[0].visibility }}"
+        uv_index: "{{ daily['weather.openweathermap'].forecast[0].uv_index }}"

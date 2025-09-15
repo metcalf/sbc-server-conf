@@ -56,6 +56,7 @@
     group: homeassistant
   with_list:
     - configuration.yaml
+    - templates.yaml
     - packages/
   tags: wip
 
@@ -68,6 +69,19 @@
     group: homeassistant
   with_list:
     - automation
+
+- name: Place wunderground sensor config
+  template:
+    src: templates/homeassistant/wunderground.yaml.j2
+    dest: /var/local/homeassistant/packages/wunderground.yaml
+    mode: '0644'
+    owner: homeassistant
+    group: homeassistant
+  vars:
+    stations:
+      - KCASANFR1969
+      - KCASANFR2157
+      - KCASANFR2069
   tags: wip
 
 - name: Cron for hass backup script

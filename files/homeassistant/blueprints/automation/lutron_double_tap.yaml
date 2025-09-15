@@ -20,6 +20,10 @@ blueprint:
               - button
           multiple: true
 
+    extra_triggers:
+      selector:
+        trigger:
+
     light_entities:
       name: "Associated Lights"
       description: "Lights controlled by this button (will be preserved on double-tap)"
@@ -46,7 +50,7 @@ blueprint:
     double_tap_window:
       name: "Double Tap Time Window"
       description: "Maximum time between presses to consider it a double-tap (seconds)"
-      default: 1.0
+      default: 0.5
       selector:
         number:
           min: 0.2
@@ -81,11 +85,14 @@ blueprint:
         boolean:
 
 # The automation template
-trigger:
-  - platform: event
+triggers:
+  - trigger: event
+    id: "default_button_trigger"
     event_type: lutron_caseta_button_event
     event_data:
       action: press
+      type: SunnataHybridKeypad
+  - triggers: !input extra_triggers
 
 variables:
   current_timestamp: "{{ as_timestamp(trigger.event.time_fired) }}"
@@ -145,7 +152,7 @@ variables:
 action:
   # Only proceed if we found a matching button entity
   - condition: template
-    value_template: "{{ matching_button_entity != '' }}"
+    value_template: "{{ trigger.id != 'default_button_trigger' or matching_button_entity != '' }}"
 
   - if:
       - condition: template

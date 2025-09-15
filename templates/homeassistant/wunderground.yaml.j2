@@ -1,0 +1,58 @@
+template:
+{% raw %}
+  - sensor:
+    - name: "Most Recent Local Station Weather"
+      unique_id: "most_recent_station_weather"
+      state: >
+        {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
+        {% set sensors = namespace(list=[]) %}
+        {% for station in stations %}
+          {% set name = 'sensor.weather_station_' + station %}
+          {% set sensor_state = states(name) %}
+          {% set sensor_epoch = state_attr(name, 'epoch') %}
+          {% if sensor_state != 'unknown' and sensor_epoch is not none %}
+            {% set sensors.list = sensors.list + [{'epoch': sensor_epoch, 'state': sensor_state}] %}
+          {% endif %}
+        {% endfor %}
+        {% if sensors.list | count > 0 %}
+          {% set latest = sensors.list | sort(attribute='epoch') | last %}
+          {{ latest.state }}
+        {% else %}
+          0
+        {% endif %}
+      attributes:
+        epoch: >
+          {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
+          {% set sensors = namespace(list=[]) %}
+          {% for station in stations %}
+            {% set name = 'sensor.weather_station_' + station %}
+            {% set sensor_state = states(name) %}
+            {% set sensor_epoch = state_attr(name, 'epoch') %}
+            {% if sensor_state != 'unknown' and sensor_epoch is not none %}
+              {% set sensors.list = sensors.list + [{'epoch': sensor_epoch, 'state': sensor_state}] %}
+            {% endif %}
+          {% endfor %}
+          {% if sensors.list | count > 0 %}
+            {% set latest = sensors.list | sort(attribute='epoch') | last %}
+            {{ latest.epoch }}
+          {% else %}
+            0
+          {% endif %}
+{% endraw %}
+
+sensor:
+{% for station in stations %}
+  - platform: rest
+    scan_interval: 300
+    method: GET
+    value_template: {% raw %}"{{ value_json.observations[0].metric.temp }}"{% endraw +%}
+    json_attributes_path: "$.observations[0]"
+    json_attributes:
+      - epoch
+      - humidity
+      - uv
+      - solarRadiation
+    unique_id: "weather_{{ station }}"
+    name: "Weather Station {{ station }}"
+    resource: "https://api.weather.com/v2/pws/observations/current?apiKey=e1f10a1e78da46f5b10a1e78da96f525&numericPrecision=decimal&format=json&units=m&stationId={{ station }}"
+{% endfor %}

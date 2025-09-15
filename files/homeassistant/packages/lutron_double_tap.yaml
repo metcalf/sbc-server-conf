@@ -2,15 +2,25 @@ automation:
 - alias: Lutron Double Tap - Kitchen - 1 (Bright)
   description: ''
   id: 2f_double_tap_kitchen_1
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_kitchen_back_door_position_2_keypad_kitchen_bright
       - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_bright
       - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_kitchen_bright
-      enable_logging: true
-      light_entities: &id001
-      - light.2nd_floor_kitchen_downlightslight.2nd_floor_kitchen_island_pendantlight.2nd_floor_kitchen_undercabinet
+      enable_logging: false
+      extra_triggers:
+      - event_data:
+          action: press
+          device_id: 4e26b4960c904eed2cb2201650905ebc
+          leap_button_number: 1
+        event_type: lutron_caseta_button_event
+        trigger: event
+      light_entities:
+      - light.2nd_floor_kitchen_downlights
+      - light.2nd_floor_kitchen_island_pendant
+      - light.2nd_floor_kitchen_undercabinet
       storage_helper: input_text.lutron_double_tap_2f_kitchen_1
       triggered_action:
       - action: button.press
@@ -25,14 +35,25 @@ automation:
 - alias: Lutron Double Tap - Kitchen - 2 (Ambient)
   description: ''
   id: 2f_double_tap_kitchen_2
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_kitchen_back_door_position_2_keypad_ambient
       - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_ambient
       - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_ambient
-      enable_logging: true
-      light_entities: *id001
+      enable_logging: false
+      extra_triggers:
+      - event_data:
+          action: press
+          device_id: 4e26b4960c904eed2cb2201650905ebc
+          leap_button_number: 2
+        event_type: lutron_caseta_button_event
+        trigger: event
+      light_entities:
+      - light.2nd_floor_kitchen_downlights
+      - light.2nd_floor_kitchen_island_pendant
+      - light.2nd_floor_kitchen_undercabinet
       storage_helper: input_text.lutron_double_tap_2f_kitchen_2
       triggered_action:
       - action: button.press
@@ -47,14 +68,25 @@ automation:
 - alias: Lutron Double Tap - Kitchen - 3 (Eat)
   description: ''
   id: 2f_double_tap_kitchen_3
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_kitchen_back_door_position_2_keypad_morning
       - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_eat
       - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_morning
-      enable_logging: true
-      light_entities: *id001
+      enable_logging: false
+      extra_triggers:
+      - event_data:
+          action: press
+          device_id: 4e26b4960c904eed2cb2201650905ebc
+          leap_button_number: 3
+        event_type: lutron_caseta_button_event
+        trigger: event
+      light_entities:
+      - light.2nd_floor_kitchen_downlights
+      - light.2nd_floor_kitchen_island_pendant
+      - light.2nd_floor_kitchen_undercabinet
       storage_helper: input_text.lutron_double_tap_2f_kitchen_3
       triggered_action:
       - action: button.press
@@ -69,14 +101,25 @@ automation:
 - alias: Lutron Double Tap - Kitchen - 4 (Dim)
   description: ''
   id: 2f_double_tap_kitchen_4
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_kitchen_back_door_position_2_keypad_eat
       - button.2nd_floor_family_room_by_kitchen_position_1_keypad_kitchen_dim
       - button.2nd_floor_dining_room_kitchen_wall_position_2_keypad_eat
-      enable_logging: true
-      light_entities: *id001
+      enable_logging: false
+      extra_triggers:
+      - event_data:
+          action: press
+          device_id: 4e26b4960c904eed2cb2201650905ebc
+          leap_button_number: 4
+        event_type: lutron_caseta_button_event
+        trigger: event
+      light_entities:
+      - light.2nd_floor_kitchen_downlights
+      - light.2nd_floor_kitchen_island_pendant
+      - light.2nd_floor_kitchen_undercabinet
       storage_helper: input_text.lutron_double_tap_2f_kitchen_4
       triggered_action:
       - action: button.press
@@ -91,12 +134,14 @@ automation:
 - alias: Lutron Double Tap - Dining - 1 (Bright)
   description: ''
   id: 2f_double_tap_dining_1
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_bright
-      enable_logging: true
-      light_entities: &id002
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
       - light.2nd_floor_dining_room_chandelier
       - light.2nd_floor_dining_room_skylight
       storage_helper: input_text.lutron_double_tap_2f_dining_1
@@ -113,12 +158,16 @@ automation:
 - alias: Lutron Double Tap - Dining - 2 (Ambient)
   description: ''
   id: 2f_double_tap_dining_2
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_ambient
-      enable_logging: true
-      light_entities: *id002
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_dining_room_chandelier
+      - light.2nd_floor_dining_room_skylight
       storage_helper: input_text.lutron_double_tap_2f_dining_2
       triggered_action:
       - action: button.press
@@ -133,12 +182,16 @@ automation:
 - alias: Lutron Double Tap - Dining - 3 (Eat)
   description: ''
   id: 2f_double_tap_dining_3
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_dining_dim
-      enable_logging: true
-      light_entities: *id002
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_dining_room_chandelier
+      - light.2nd_floor_dining_room_skylight
       storage_helper: input_text.lutron_double_tap_2f_dining_3
       triggered_action:
       - action: button.press
@@ -153,12 +206,16 @@ automation:
 - alias: Lutron Double Tap - Dining - 4 (Dim)
   description: ''
   id: 2f_double_tap_dining_4
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_dining_room_kitchen_wall_position_1_keypad_others_dim
-      enable_logging: true
-      light_entities: *id002
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_dining_room_chandelier
+      - light.2nd_floor_dining_room_skylight
       storage_helper: input_text.lutron_double_tap_2f_dining_4
       triggered_action:
       - action: button.press
@@ -173,12 +230,14 @@ automation:
 - alias: Lutron Double Tap - Family - 1 (Bright)
   description: ''
   id: 2f_double_tap_family_1
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_bright
-      enable_logging: true
-      light_entities: &id003
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
       - light.2nd_floor_family_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_family_1
       triggered_action:
@@ -194,12 +253,15 @@ automation:
 - alias: Lutron Double Tap - Family - 2 (Ambient)
   description: ''
   id: 2f_double_tap_family_2
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_ambient
-      enable_logging: true
-      light_entities: *id003
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_family_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_family_2
       triggered_action:
       - action: button.press
@@ -214,12 +276,15 @@ automation:
 - alias: Lutron Double Tap - Family - 3 (Evening)
   description: ''
   id: 2f_double_tap_family_3
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_family_room_by_stairs_position_1_keypad_family_dim
-      enable_logging: true
-      light_entities: *id003
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_family_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_family_3
       triggered_action:
       - action: button.press
@@ -234,12 +299,15 @@ automation:
 - alias: Lutron Double Tap - Family - 4 (Dim)
   description: ''
   id: 2f_double_tap_family_4
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_family_room_by_stairs_position_1_keypad_others_dim
-      enable_logging: true
-      light_entities: *id003
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_family_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_family_4
       triggered_action:
       - action: button.press
@@ -254,12 +322,14 @@ automation:
 - alias: Lutron Double Tap - Living - 1 (Bright)
   description: ''
   id: 2f_double_tap_living_1
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_living_room_entry_wall_position_1_keypad_bright
-      enable_logging: true
-      light_entities: &id004
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
       - light.2nd_floor_living_room_chandelier
       - light.2nd_floor_living_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_living_1
@@ -276,12 +346,16 @@ automation:
 - alias: Lutron Double Tap - Living - 2 (Ambient)
   description: ''
   id: 2f_double_tap_living_2
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_living_room_entry_wall_position_1_keypad_ambient
-      enable_logging: true
-      light_entities: *id004
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_living_room_chandelier
+      - light.2nd_floor_living_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_living_2
       triggered_action:
       - action: button.press
@@ -296,12 +370,16 @@ automation:
 - alias: Lutron Double Tap - Living - 3 (Evening)
   description: ''
   id: 2f_double_tap_living_3
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_living_room_entry_wall_position_1_keypad_dim
-      enable_logging: true
-      light_entities: *id004
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_living_room_chandelier
+      - light.2nd_floor_living_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_living_3
       triggered_action:
       - action: button.press
@@ -316,12 +394,16 @@ automation:
 - alias: Lutron Double Tap - Living - 4 (Dim)
   description: ''
   id: 2f_double_tap_living_4
+  mode: queued
   use_blueprint:
     input:
       button_entities:
       - button.2nd_floor_living_room_entry_wall_position_1_keypad_others_dim
-      enable_logging: true
-      light_entities: *id004
+      enable_logging: false
+      extra_triggers: []
+      light_entities:
+      - light.2nd_floor_living_room_chandelier
+      - light.2nd_floor_living_room_downlights
       storage_helper: input_text.lutron_double_tap_2f_living_4
       triggered_action:
       - action: button.press
