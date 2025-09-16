@@ -27,11 +27,11 @@ cd ~
 
     s3path="s3://itsshedtime-logs/home-sbc-server/$year/$month/$logname"
 
-    if aws s3 ls "$s3path"
+    if /snap/bin/aws s3 ls "$s3path"
     then
         echo "$logname is already on S3"
     else
-        aws s3 cp "$logpath" "$s3path"
+        /snap/bin/aws s3 cp "$logpath" "$s3path"
         echo "uploaded $logname"
     fi
 done

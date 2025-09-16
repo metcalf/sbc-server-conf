@@ -36,6 +36,7 @@
     validate: logrotate -d %s
 
 - name: install awscli
+  become: true  # This ensures the task runs with root privileges for system-wide installation
   community.general.snap:
     name: aws-cli
     classic: true
