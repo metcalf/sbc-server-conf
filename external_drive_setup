@@ -1,0 +1,43 @@
+# This is how I last partitioned the external backup drive.
+# Not encrypting the time machine partition because it can handle
+# encryption itself. Encrypting the other two but storing the keys
+# on the server for automatic mounting. This isn't super secure
+# but at least means someone grabbing the drive can't read it.
+
+sudo su -
+
+parted /dev/sda
+mklabel gpt
+mkpart WindowsBackup ext4 1MiB 500GiB
+mkpart TimeMachine ext4 500GiB 2000GiB
+mkpart Misc ext4 2000GiB 100%
+print
+quit
+
+cryptsetup luksFormat /dev/sda1
+cryptsetup luksFormat /dev/sda3
+
+cryptsetup luksOpen /dev/sda1 ExternalWindowsBackup_crypt
+cryptsetup luksOpen /dev/sda3 ExternalMisc_crypt
+
+mkfs.ext4 -L WindowsBackup /dev/mapper/ExternalWindowsBackup_crypt/
+mkfs.ext4 -L Misc /dev/mapper/ExternalMisc_crypt
+mkfs.ext4 -L TimeMachine /dev/sda2
+
+# Create secure directory for keys
+mkdir -p /etc/luks-keys
+chmod 700 /etc/luks-keys
+
+# Generate random keyfiles
+dd if=/dev/urandom of=/etc/luks-keys/external_windowsbackup.key bs=512 count=1
+dd if=/dev/urandom of=/etc/luks-keys/external_misc.key bs=512 count=1
+
+# Secure the keyfiles
+chmod 600 /etc/luks-keys/*.key
+
+# Add keyfiles to LUKS headers
+cryptsetup luksAddKey /dev/sda1 /etc/luks-keys/external_windowsbackup.key
+cryptsetup luksAddKey /dev/sda3 /etc/luks-keys/external_misc.key
+
+# Read block IDs for copying into playbook.yml vars
+blkid /dev/sda1 /dev/sda2 /dev/sda3

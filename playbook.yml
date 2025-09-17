@@ -7,15 +7,27 @@
     ansible_remote_tmp: /tmp/ansible/tmp
     nonroot_login_user: andrew
     nodenv_root: /home/{{ nonroot_login_user }}/.nodenv
+    usb_partitions:
+      - name: ExternalWindowsBackup
+        uuid: "3175b897-e7fa-47cb-8e5a-3d87f8bd7c84"
+        keyfile: "/etc/luks-keys/external_windowsbackup.key"
+        owner: windowsbackup
+      - name: ExternalTimeMachine
+        uuid: "bae8ed76-3c26-43cf-b175-e4f538b50db9"
+        owner: timemachinebackup
+      - name: ExternalMisc
+        uuid: "75f2aa1d-2fb5-4489-9839-fcdbd708cfcf"
+        keyfile: "/etc/luks-keys/external_misc.key"
+        owner: miscbackup
   tasks:
     - name: Include secrets
       include_vars: secrets.yml
     - import_tasks: tasks/system.yml
     - import_tasks: tasks/logging.yml
     - import_tasks: tasks/ddns.yml
+    - import_tasks: tasks/samba.yml
     - import_tasks: tasks/apps.yml
     - import_tasks: tasks/webserver.yml
     - import_tasks: tasks/homeassistant.yml
-
   handlers:
     - import_tasks: handlers/main.yml

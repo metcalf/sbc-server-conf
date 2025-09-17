@@ -1,0 +1,76 @@
+---
+- name: install dependencies
+  apt:
+    name:
+      - samba
+      - samba-common-bin
+      - cryptsetup
+    state: present
+
+- name: Create users
+  user:
+    name: "{{ item }}"
+    password_lock: true
+    create_home: false
+  with_items:
+    - windowsbackup
+    - timemachinebackup
+    - miscbackup
+
+- name: Configure crypttab for encrypted partitions
+  crypttab:
+    name: "{{ item.name }}_crypt"
+    backing_device: "UUID={{ item.uuid }}"
+    password: "{{ item.keyfile }}"
+    opts: luks,nofail
+    state: present
+  loop: "{{ usb_partitions }}"
+  when: item.keyfile is defined
+
+- name: Create mount point directories
+  file:
+    path: "/mnt/{{ item.name }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.owner | default('root') }}"
+  loop: "{{ usb_partitions }}"
+
+- name: Mount encrypted USB partitions and add to fstab
+  mount:
+    path: "/mnt/{{ item.name }}"
+    src: "/dev/mapper/{{ item.name }}_crypt"
+    fstype: ext4
+    opts: "defaults,nofail,x-systemd.device-timeout=10"
+    dump: 0
+    passno: 2
+    state: mounted
+  loop: "{{ usb_partitions }}"
+  when: item.keyfile is defined
+
+- name: Mount unencrypted USB partitions and add to fstab
+  mount:
+    path: "/mnt/{{ item.name }}"
+    src: "UUID={{ item.uuid }}"
+    fstype: ext4
+    opts: "defaults,nofail,x-systemd.device-timeout=10"
+    dump: 0
+    passno: 2
+    state: mounted
+  loop: "{{ usb_partitions }}"
+  when: item.keyfile is not defined
+
+- name: Allow Samba application profile from specific networks
+  ufw:
+    rule: allow
+    name: Samba
+    src: "{{ item }}"
+  with_items:
+    - 192.168.0.0/22
+
+- name: Place smb.conf
+  copy:
+    src: files/smb.conf
+    dest: /etc/samba/smb.conf
+    mode: "0644"
+  notify: restart smbd
