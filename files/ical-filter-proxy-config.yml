@@ -1,0 +1,32 @@
+liveoak:
+   ical_url: https://liveoaksf.myschoolapp.com/podium/feed/iCal.aspx?z=DW7YNu2QGlHfX1Amr%2bzmtiHwD%2fs7p1fkylUulHCPYjZfKstw%2b5Sk1n3je2cO%2bbJJzx8QpaPMWDPoGnHBuAqqQQ%3d%3d
+   api_key: wac7drb2qhmjyp2FDW # (optional) append ?key=myapikey to your URL to grant access
+   timezone: America/Los_Angeles # (optional) ensure all time comparisons are done in this TZ
+   rules:
+      - field: summary # summary and description supported
+        operator: not-includes # match against regex pattern
+        val:
+          # - 'Kinder'
+          - 'First Grade'
+          - '1st Grade'
+          # - 'Second Grade'
+          # - '2nd Grade'
+          - 'Third Grade'
+          - '3rd Grade'
+          - 'Fourth Grade'
+          - '4th Grade'
+          - 'Fifth Grade'
+          - '5th Grade'
+          - 'Sixth Grade'
+          - '6th Grade'
+          - 'Seventh Grade'
+          - '7th Grade'
+          - 'Eighth Grade'
+          - '8th Grade'
+          # - 'Lower School'
+          - 'Middle School'
+          - 'High School'
+          - 'Affinity G' # Group, Grove, Gathering
+          - 'JV'
+          - 'Varsity'
+          - 'Cross Country'

@@ -1,0 +1,83 @@
+---
+- name: install dependencies
+  apt:
+    name:
+      - git
+      - ruby-full
+    state: present
+
+- name: install bundler gem
+  gem:
+    name: bundler
+    state: present
+
+- name: Create ical-filter-proxy user
+  user:
+    name: icalfilter
+    comment: ical-filter-proxy
+    home: /var/local/ical-filter-proxy
+    create_home: false
+
+- name: Create app directory
+  file:
+    path: "/var/local/ical-filter-proxy"
+    state: directory
+    owner: "icalfilter"
+    group: "icalfilter"
+    mode: '0755'
+
+- name: Clone ical-filter-proxy
+  git:
+    repo: 'https://github.com/darkphnx/ical-filter-proxy.git'
+    dest: '/var/local/ical-filter-proxy'
+    version: '9a33022b598daa54179c11a0671b7d9198ee072b'
+    force: true
+  become_user: icalfilter
+  notify: restart ical-filter-proxy
+
+- name: Bundler config
+  copy:
+    content: |
+      ---
+      BUNDLE_PATH: "vendor/bundle"
+      BUNDLE_DEPLOYMENT: "true"
+      BUNDLE_WITHOUT: "development test"
+    dest: /var/local/ical-filter-proxy/.bundle/config
+    mode: "0644"
+    owner: icalfilter
+    group: icalfilter
+
+- name: Install Ruby dependencies
+  bundler:
+    state: present
+    chdir: '/var/local/ical-filter-proxy'
+    deployment_mode: yes
+  become_user: icalfilter
+  notify: restart ical-filter-proxy
+
+- name: ical-filter-proxy configuration
+  copy:
+    src: files/ical-filter-proxy-config.yml
+    dest: /var/local/ical-filter-proxy/config.yml
+    mode: "0644"
+    owner: icalfilter
+    group: icalfilter
+  notify: restart ical-filter-proxy
+
+- name: ical-filter-proxy systemd service file
+  copy:
+    src: files/ical-filter-proxy.service
+    dest: /etc/systemd/system/ical-filter-proxy.service
+    mode: "0644"
+    owner: root
+    group: root
+  notify:
+    - reload systemd
+    - restart ical-filter-proxy
+
+- name: Start ical-filter-proxy
+  systemd:
+    name: ical-filter-proxy
+    state: started
+    enabled: true
+    daemon_reload: true

@@ -89,12 +89,7 @@
     owner: root
     group: root
     mode: '0644'
-  register: bots_n_scrapers_service_file
-
-- name: Reload systemd daemon
-  systemd:
-    daemon_reload: yes
-  when: bots_n_scrapers_service_file.changed
+  notify: reload systemd
 
 - name: Rotate bots_n_scrapers logs
   template:

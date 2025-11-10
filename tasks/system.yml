@@ -34,6 +34,11 @@
   args:
     creates: /home/{{ nonroot_login_user }}/.ssh/id_ed25519
 
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 36000 # 10 hours
+
 - name: install dependencies
   apt:
     name:

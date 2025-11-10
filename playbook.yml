@@ -27,6 +27,7 @@
     - import_tasks: tasks/ddns.yml
     - import_tasks: tasks/samba.yml
     - import_tasks: tasks/apps.yml
+    - import_tasks: tasks/ical-filter-proxy.yml
     - import_tasks: tasks/webserver.yml
     - import_tasks: tasks/homeassistant.yml
   handlers:

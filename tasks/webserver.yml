@@ -30,10 +30,14 @@
       - -n
       - --dns-cloudflare
       - --dns-cloudflare-credentials=/root/certbot-cloudflare.ini
-      - -d home-sbc-server-local.itsshedtime.com
+      - -d {{ item }}
       - --email=hello@itsshedtime.com
       - --agree-tos
-    creates: /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/privkey.pem
+    creates: /etc/letsencrypt/live/{{ item }}/privkey.pem
+  with_items:
+    - home-sbc-server-local.itsshedtime.com
+    - homeassistant.itsshedtime.com
+    - homeapps.itsshedtime.com
 
 - name: nginx.conf
   copy:
@@ -62,6 +66,7 @@
   loop:
     - home-sbc-server-local.itsshedtime.com
     - homeassistant
+    - homeapps
 
 - name: Create site directories
   file:

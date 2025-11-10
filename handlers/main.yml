@@ -32,3 +32,12 @@
   service:
     name: smbd
     state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: restart ical-filter-proxy
+  service:
+    name: ical-filter-proxy
+    state: restarted
