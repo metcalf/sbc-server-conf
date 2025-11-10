@@ -1,5 +1,6 @@
 backups/
 secrets.yml
+secrets.yaml
 playbook.retry
 .uuid
 .ansible

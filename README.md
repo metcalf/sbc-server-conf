@@ -8,7 +8,7 @@ Installing
 * SSH to the device
 * `apt-get update && apt-get upgrade`
 *  `reboot`
-* `mv secrets.yml.tmpl secrets.yml` and fill out as needed
+* Pull secrets from 1Password and update as needed
 * Run:
 ```
 ansible-playbook --inventory <IP ADDRESS>, playbook.yml --verbose

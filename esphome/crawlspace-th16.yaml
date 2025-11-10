@@ -1,0 +1,79 @@
+# Basic Config
+esphome:
+  name: "crawlspace-th16"
+  friendly_name: "Crawlspace TH16"
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable the web server
+web_server:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret esphome_api_key
+
+# Enable Over-The-Air updates
+ota:
+  - platform: esphome
+    password: !secret esphome_ota_password
+
+# Wifi Setup
+wifi:
+  ssid: !secret wifi_iot_ssid
+  password: !secret wifi_iot_password
+
+  # Enable fallback hotspot in case wifi connection fails
+  ap:
+    ssid: "Sonoff-TH16 Fallback"
+    password: !secret wifi_fallback_password
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+  - platform: dht
+    pin: GPIO14
+    model: SI7021
+    temperature:
+      name: "Crawlspace Temperature"
+    humidity:
+      name: "Crawlspace Humidity"
+    update_interval: 60s
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "Button"
+    on_press:
+      - light.toggle: th1x_relay
+  - platform: status
+    name: "$Status"
+
+switch:
+  - platform: restart
+    name: "Restart"
+
+output:
+  - platform: gpio
+    id: relay
+    pin: GPIO12
+
+# Status LED (inverted - on when low)
+status_led:
+  pin:
+    number: GPIO13
+    inverted: true
+
+light:
+  - platform: binary
+    name: "Relay"
+    id: th1x_relay
+    output: relay
