@@ -2,16 +2,26 @@
   - unique_id: "on_vacation"
     name: "On Vacation"
     state: >
-      {{ states.climate.guestbedroom.attributes.target_temp_low == 60 and
-      (states.climate.shop_thermostat.attributes.target_temp_low == 60) }}
+      {{ states.climate.guestbedroom.attributes.temperature == 60 and
+      (states.climate.shop_thermostat.attributes.temperature == 60) }}
 - sensor:
   - name: "Custom thermostat API data"
     unique_id: "custom_thermostat_api_data"
     state: >
-      001
+      002
       {{ 1 if is_state('binary_sensor.on_vacation', 'on') else 0 }}
       {{ "{:05.1f}".format(min(999, max(0, states.sensor.most_recent_local_weather.state | float(0) + 100.0))) }}
       {{ "{:010d}".format(states.sensor.most_recent_local_weather.attributes.epoch | int(0)) }}
+      {{ "{:03d}".format(states.sensor.airnow_air_quality_index.state | int(-1)) }}
+
+- trigger:
+    - trigger: time
+      at: '02:00:01'
+    - trigger: homeassistant
+      event: start
+  binary_sensor:
+    - name: "is_daylight_saving_time"
+      state: "{{ now().timetuple().tm_isdst == 1 }}"
 
 - trigger:
     - platform: time_pattern

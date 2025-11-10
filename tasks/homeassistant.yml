@@ -41,6 +41,14 @@
     mode: '0755'
     state: directory
 
+- name: Create matter-server directory
+  file:
+    path: /var/local/homeassistant/matter-server/data
+    owner: homeassistant
+    group: homeassistant
+    mode: '0755'
+    state: directory
+
 - name: Place compose file
   copy:
     src: files/homeassistant/compose.yml
