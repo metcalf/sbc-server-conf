@@ -90,6 +90,15 @@
       - KCASANFR2157
       - KCASANFR2069
 
+- name: Ensure custom_components directory exists
+  ansible.builtin.file:
+    path: /var/local/homeassistant/custom_components
+    state: directory
+    mode: '0755'
+    owner: homeassistant
+    group: homeassistant
+  tags: wip
+
 - name: Cron for hass backup script
   copy:
     src: files/homeassistant/backup
@@ -111,6 +120,54 @@
     rule: allow
     port: 1400
     proto: tcp
+
+- name: Download and install midea_ac_lan custom component
+  vars:
+    midea_version: "v0.6.10"
+    dest_dir: /var/local/homeassistant/custom_components/midea_ac_lan
+  tags: wip
+  block:
+    - name: Check if correct version is already installed
+      ansible.builtin.shell: |
+        if [ -f {{ dest_dir }}/manifest.json ]; then
+          grep -q '"version": "{{ midea_version }}"' {{ dest_dir }}/manifest.json
+        else
+          exit 1
+        fi
+      register: version_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download midea_ac_lan zip file
+      ansible.builtin.get_url:
+        url: https://github.com/wuwentao/midea_ac_lan/releases/download/{{ midea_version }}/midea_ac_lan.zip
+        dest: /tmp/midea_ac_lan.zip
+        mode: '0644'
+      when: version_check.rc != 0
+
+    - name: Ensure midea_ac_lan directory exists
+      ansible.builtin.file:
+        path: "{{ dest_dir }}"
+        state: directory
+        mode: '0755'
+        owner: homeassistant
+        group: homeassistant
+      when: version_check.rc != 0
+
+    - name: Unzip midea_ac_lan to custom_components
+      ansible.builtin.unarchive:
+        src: /tmp/midea_ac_lan.zip
+        dest: "{{ dest_dir }}"
+        remote_src: yes
+        owner: homeassistant
+        group: homeassistant
+      when: version_check.rc != 0
+
+    - name: Clean up zip file
+      ansible.builtin.file:
+        path: /tmp/midea_ac_lan.zip
+        state: absent
+      when: version_check.rc != 0
 
 - name: Start docker
   systemd_service:

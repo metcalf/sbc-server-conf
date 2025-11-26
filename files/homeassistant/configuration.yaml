@@ -13,3 +13,20 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 template: !include templates.yaml
+
+notify:
+  - name: pagerduty
+    platform: rest
+    resource: https://events.pagerduty.com/v2/enqueue
+    method: POST_JSON
+    headers:
+      Content-Type: application/json
+    data:
+      routing_key: "68179b9225254e0dc0bf0d75fa26daa2"
+      event_action: "trigger"
+      payload:
+        summary: "{{ message }}"
+        source: "home-assistant"
+        severity: "{{ severity | default('warning') }}"
+        timestamp: "{{ now().isoformat() }}"
+        custom_details: {}
