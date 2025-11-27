@@ -5,7 +5,6 @@
       - mosquitto
       - mosquitto-clients
     state: latest
-    update_cache: yes
 
 - name: Create mosquitto configuration directory
   file:
@@ -38,7 +37,7 @@
   copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
-    remote_src: yes
+    remote_src: true
     owner: mosquitto
     group: mosquitto
     mode: '0644'
@@ -64,7 +63,7 @@
 - name: Enable and start mosquitto service
   systemd_service:
     name: mosquitto
-    enabled: yes
+    enabled: true
     state: started
 
 - name: Allow MQTT TLS connections
