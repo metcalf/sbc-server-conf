@@ -13,6 +13,7 @@ blueprint:
     button_entities:
       name: "Buttons"
       description: "The Lutron keypad button entity(s) to monitor"
+      default: []
       selector:
         entity:
           filter:
@@ -27,6 +28,7 @@ blueprint:
     light_entities:
       name: "Associated Lights"
       description: "Lights controlled by this button (will be preserved on double-tap)"
+      default: []
       selector:
         entity:
           filter:
