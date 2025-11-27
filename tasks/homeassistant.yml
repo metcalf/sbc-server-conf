@@ -194,6 +194,15 @@
     dest: /etc/logrotate.d/mosquitto
     mode: '0644'
 
+- name: Template mosquitto password file
+  template:
+    src: templates/mosquitto-passwd.j2
+    dest: /etc/mosquitto/passwd
+    owner: mosquitto
+    group: mosquitto
+    mode: '0600'
+  notify: restart mosquitto
+
 - name: Create mosquitto certs directory
   file:
     path: /etc/mosquitto/certs
