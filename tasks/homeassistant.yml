@@ -194,18 +194,53 @@
     dest: /etc/logrotate.d/mosquitto
     mode: '0644'
 
+- name: Create mosquitto certs directory
+  file:
+    path: /etc/mosquitto/certs
+    state: directory
+    mode: '0755'
+    owner: mosquitto
+    group: mosquitto
+
+- name: Copy certificates for mosquitto
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+    owner: mosquitto
+    group: mosquitto
+    mode: '0644'
+  with_items:
+    - src: /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/fullchain.pem
+      dest: /etc/mosquitto/certs/fullchain.pem
+    - src: /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/privkey.pem
+      dest: /etc/mosquitto/certs/privkey.pem
+  notify: restart mosquitto
+
+- name: Create certbot deploy hook for mosquitto
+  copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/mosquitto
+    content: |
+      #!/bin/bash
+      cp /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/fullchain.pem /etc/mosquitto/certs/fullchain.pem
+      cp /etc/letsencrypt/live/home-sbc-server-local.itsshedtime.com/privkey.pem /etc/mosquitto/certs/privkey.pem
+      chown mosquitto:mosquitto /etc/mosquitto/certs/*.pem
+      chmod 644 /etc/mosquitto/certs/*.pem
+      systemctl reload mosquitto
+    mode: '0755'
+
 - name: Enable and start mosquitto service
   systemd_service:
     name: mosquitto
     enabled: yes
     state: started
 
-- name: Allow MQTT connections
+- name: Allow MQTT TLS connections
   community.general.ufw:
     rule: allow
-    port: 1883
+    port: 8883
     proto: tcp
-    comment: MQTT broker
+    comment: MQTT broker (TLS)
 
 - name: Start docker
   systemd_service:
