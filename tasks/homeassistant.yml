@@ -97,7 +97,6 @@
     mode: '0755'
     owner: homeassistant
     group: homeassistant
-  tags: wip
 
 - name: Cron for hass backup script
   copy:
@@ -125,7 +124,6 @@
   vars:
     midea_version: "v0.6.10"
     dest_dir: /var/local/homeassistant/custom_components/midea_ac_lan
-  tags: wip
   block:
     - name: Check if correct version is already installed
       ansible.builtin.shell: |
@@ -168,6 +166,46 @@
         path: /tmp/midea_ac_lan.zip
         state: absent
       when: version_check.rc != 0
+
+- name: Install mosquitto MQTT broker
+  apt:
+    name:
+      - mosquitto
+      - mosquitto-clients
+    state: latest
+    update_cache: yes
+
+- name: Create mosquitto configuration directory
+  file:
+    path: /etc/mosquitto/conf.d
+    state: directory
+    mode: '0755'
+
+- name: Place mosquitto configuration
+  copy:
+    src: files/mosquitto.conf
+    dest: /etc/mosquitto/conf.d/local.conf
+    mode: '0644'
+  notify: restart mosquitto
+
+- name: Place mosquitto logrotate configuration
+  copy:
+    src: files/mosquitto.logrotate.conf
+    dest: /etc/logrotate.d/mosquitto
+    mode: '0644'
+
+- name: Enable and start mosquitto service
+  systemd_service:
+    name: mosquitto
+    enabled: yes
+    state: started
+
+- name: Allow MQTT connections
+  community.general.ufw:
+    rule: allow
+    port: 1883
+    proto: tcp
+    comment: MQTT broker
 
 - name: Start docker
   systemd_service:
