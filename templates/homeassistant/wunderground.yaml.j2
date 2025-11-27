@@ -1,8 +1,8 @@
 template:
 {% raw %}
   - sensor:
-    - name: "Most Recent Local Station Weather"
-      unique_id: "most_recent_station_weather"
+    - name: "Most Recent Local PWS Weather"
+      unique_id: "most_recent_local_weather"
       state: >
         {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
         {% set sensors = namespace(list=[]) %}

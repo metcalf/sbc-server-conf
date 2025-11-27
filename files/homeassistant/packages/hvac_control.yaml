@@ -11,14 +11,38 @@ template:
         {{ "{:03d}".format(states.sensor.airnow_air_quality_index.state | int(-1)) }}
 
 automation:
-  - alias: "Publish Custom Thermostat API Data to MQTT"
-    description: "Publishes sensor.custom_thermostat_api_data state changes"
+  - alias: "Publish on_vacation"
+    id: mqtt_publish_on_vacation
     trigger:
       - platform: state
-        entity_id: sensor.custom_thermostat_api_data
+        entity_id: binary_sensor.on_vacation
     action:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/sensor/custom_thermostat_api_data/state"
-          payload: "{{ states('sensor.custom_thermostat_api_data') }}"
+          topic: "homeassistant/on_vacation"
+          payload: "{{ states('binary_sensor.on_vacation') }}"
+          retain: true
+  - alias: "Publish outdoor temp (°C)"
+    id: mqtt_publish_outdoor_temp_c
+    trigger:
+      - platform: state
+        entity_id: sensor.most_recent_local_weather
+    action:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/outdoor_temp_c"
+          payload: >
+            {{ "{:05.1f}".format(min(999, max(0, states.sensor.most_recent_local_weather.state | float(0) + 100.0))) }}
+            {{ "{:010d}".format(states.sensor.most_recent_local_weather.attributes.epoch | int(0)) }}
+          retain: true
+  - alias: "Publish air quality index"
+    id: mqtt_publish_air_quality_index
+    trigger:
+      - platform: state
+        entity_id: sensor.airnow_air_quality_index
+    action:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/air_quality_index"
+          payload: "{{ states('sensor.airnow_air_quality_index') }}"
           retain: true
