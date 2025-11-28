@@ -2,6 +2,7 @@ template:
 {% raw %}
   - sensor:
     - name: "Most Recent Local PWS Weather"
+      default_entity_id: sensor.most_recent_local_weather
       unique_id: "most_recent_local_weather"
       state: >
         {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
