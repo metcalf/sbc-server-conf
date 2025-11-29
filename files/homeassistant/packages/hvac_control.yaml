@@ -19,7 +19,7 @@ automation:
     action:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/on_vacation"
+          topic: "home/global/on_vacation"
           payload: "{{ states('binary_sensor.on_vacation') }}"
           retain: true
   - alias: "Publish outdoor temp (°C)"
@@ -30,7 +30,7 @@ automation:
     action:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/outdoor_temp_c"
+          topic: "home/global/outdoor_temp_c"
           payload: >
             {{ "{:05.1f}".format(min(999, max(0, states.sensor.most_recent_local_weather.state | float(0) + 100.0))) }}
             {{ "{:010d}".format(states.sensor.most_recent_local_weather.attributes.epoch | int(0)) }}
@@ -43,6 +43,6 @@ automation:
     action:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/air_quality_index"
+          topic: "home/global/air_quality_index"
           payload: "{{ states('sensor.airnow_air_quality_index') }}"
           retain: true
