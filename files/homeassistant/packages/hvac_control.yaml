@@ -20,7 +20,7 @@ automation:
       - service: mqtt.publish
         data:
           topic: "home/global/on_vacation"
-          payload: "{{ states('binary_sensor.on_vacation') }}"
+          payload: "{{ 1 if is_state('binary_sensor.on_vacation', 'on') else 0 }}"
           retain: true
   - alias: "Publish outdoor temp (°C)"
     id: mqtt_publish_outdoor_temp_c
