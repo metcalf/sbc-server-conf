@@ -74,3 +74,9 @@
     dest: /etc/samba/smb.conf
     mode: "0644"
   notify: restart smbd
+
+- name: Place logrotate configuration
+  copy:
+    src: files/samba.logrotate.conf
+    dest: /etc/logrotate.d/samba
+    mode: "0644"
