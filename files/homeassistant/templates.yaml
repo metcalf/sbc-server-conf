@@ -40,5 +40,4 @@
         wind_speed: "{{ daily['weather.openweathermap'].forecast[0].wind_speed }}"
         humidity: "{{ daily['weather.openweathermap'].forecast[0].humidity }}"
         pressure: "{{ daily['weather.openweathermap'].forecast[0].pressure }}"
-        visibility: "{{ daily['weather.openweathermap'].forecast[0].visibility }}"
         uv_index: "{{ daily['weather.openweathermap'].forecast[0].uv_index }}"
