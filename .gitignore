@@ -5,6 +5,11 @@ playbook.retry
 .uuid
 .ansible
 
+# PKI - manually commit pki/ca/ca.crt #
+##################################################
+pki/
+
+
 # Logs and databases #
 ######################
 *.log

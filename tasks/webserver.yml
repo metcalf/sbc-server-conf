@@ -53,6 +53,19 @@
     mode: "0700"
   notify: reload nginx
 
+- name: Create client certificate directory
+  file:
+    path: /etc/nginx/client-certs
+    state: directory
+    mode: "0755"
+
+- name: Deploy client CA certificate
+  copy:
+    src: pki/ca/ca.crt
+    dest: /etc/nginx/client-certs/ca.crt
+    mode: "0644"
+  notify: reload nginx
+
 - name: Remove default site
   file:
     path: /etc/nginx/sites-enabled/default
