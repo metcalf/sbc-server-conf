@@ -39,6 +39,14 @@
     - homeassistant.itsshedtime.com
     - homeapps.itsshedtime.com
 
+- name: Certbot renewal hook to reload nginx
+  copy:
+    content: |
+      #!/bin/bash
+      systemctl reload nginx
+    dest: /etc/letsencrypt/renewal-hooks/deploy/nginx
+    mode: "0755"
+
 - name: nginx.conf
   copy:
     src: files/nginx.conf
