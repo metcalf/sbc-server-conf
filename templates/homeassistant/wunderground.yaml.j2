@@ -4,6 +4,8 @@ template:
     - name: "Most Recent Local PWS Weather"
       default_entity_id: sensor.most_recent_local_weather
       unique_id: "most_recent_local_weather"
+      device_class: temperature
+      unit_of_measurement: °C
       state: >
         {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
         {% set sensors = namespace(list=[]) %}
@@ -46,6 +48,8 @@ sensor:
   - platform: rest
     scan_interval: 300
     method: GET
+    device_class: temperature
+    unit_of_measurement: °C
     value_template: {% raw %}"{{ value_json.observations[0].metric.temp }}"{% endraw +%}
     json_attributes_path: "$.observations[0]"
     json_attributes:
