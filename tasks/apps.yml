@@ -110,3 +110,20 @@
     mode: "0755"
     owner: root
     group: root
+
+# Pollen weekly summary
+- name: pollen weekly summary script
+  copy:
+    src: files/pollen_weekly_summary.py
+    dest: /usr/local/bin/pollen_weekly_summary.py
+    mode: "0755"
+    owner: root
+    group: root
+  tags: wip
+
+- name: pollen weekly summary cron
+  template:
+    src: pollen_weekly_summary_cron.j2
+    dest: /etc/cron.d/pollen_weekly_summary
+    mode: "0600"
+  tags: wip
