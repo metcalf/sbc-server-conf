@@ -119,11 +119,9 @@
     mode: "0755"
     owner: root
     group: root
-  tags: wip
 
 - name: pollen weekly summary cron
   template:
     src: pollen_weekly_summary_cron.j2
     dest: /etc/cron.d/pollen_weekly_summary
     mode: "0600"
-  tags: wip
