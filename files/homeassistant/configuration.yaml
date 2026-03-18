@@ -33,6 +33,6 @@ notify:
       payload:
         summary: "{{ message }}"
         source: "home-assistant"
-        severity: "{{ severity | default('warning') }}"
+        severity: "{{ data.severity | default('warning') }}"
         timestamp: "{{ now().isoformat() }}"
         custom_details: {}
