@@ -31,7 +31,7 @@ LONGITUDE = -122.4208
 SMTP_SERVER     = "smtppro.zoho.com"
 SMTP_PORT       = 465
 SENDER_EMAIL    = "homeserver@itsshedtime.com"
-SENDER_PASS     = os.environ["SENDER_PASS"]
+
 RECIPIENT_EMAILS = ["agmetcalf@gmail.com", "morgandavismetcalf@gmail.com"]
 EMAIL_SUBJECT   = "🌿 Pollen Forecast"
 
@@ -304,7 +304,7 @@ def send_email(html_body: str):
     msg.attach(MIMEText(html_body, "html"))
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(SENDER_EMAIL, SENDER_PASS)
+        server.login(SENDER_EMAIL, os.environ["SENDER_PASS"])
         server.sendmail(SENDER_EMAIL, RECIPIENT_EMAILS, msg.as_string())
 
 # ─────────────────────────────────────────────
@@ -312,14 +312,22 @@ def send_email(html_body: str):
 # ─────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Pollen forecast — prints HTML to stdout by default.")
+    parser.add_argument("--email", action="store_true", help="Send email instead of printing to stdout")
+    args = parser.parse_args()
+
     print(f"[{datetime.now():%Y-%m-%d %H:%M}] Fetching pollen data...")
     try:
         daily_info = fetch_pollen_forecast()
         all_species = sorted({name for day in daily_info for name in day["species"]})
         print(f"Species returned: {', '.join(all_species)}")
-        html       = build_html(daily_info)
-        send_email(html)
-        print(f"[{datetime.now():%Y-%m-%d %H:%M}] Email sent to {', '.join(RECIPIENT_EMAILS)} ✓")
+        html = build_html(daily_info)
+        if args.email:
+            send_email(html)
+            print(f"[{datetime.now():%Y-%m-%d %H:%M}] Email sent to {', '.join(RECIPIENT_EMAILS)} ✓")
+        else:
+            print(html)
     except requests.HTTPError as e:
         print(f"API error: {e.response.status_code} — {e.response.text}")
     except Exception as e:
