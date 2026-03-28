@@ -1,7 +1,7 @@
 server {
     listen 80;
     listen [::]:80;
-    root /var/www/local;
+    root /var/www/homeapps;
     server_name  homeapps.itsshedtime.com;
 
     listen 443 ssl;
@@ -15,10 +15,6 @@ server {
         return 301 https://$host$request_uri;
     }
 
-    location / {
-        return 400;
-    }
-
     location = /icalfilterproxy/liveoak {
         proxy_pass http://127.0.0.1:8101/liveoak?key=$arg_key;
         proxy_method GET;
@@ -26,5 +22,4 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $remote_addr;
     }
-
 }
