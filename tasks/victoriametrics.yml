@@ -66,3 +66,47 @@
     name: victoriametrics
     enabled: true
     state: started
+
+- name: Check installed vmbackup version
+  ansible.builtin.command: /usr/local/bin/vmbackup-prod -version
+  register: vmbackup_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Download and install vmbackup
+  when: victoriametrics_version not in (vmbackup_version_check.stdout | default(''))
+  block:
+    - name: Download vmutils tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/{{ victoriametrics_version }}/vmutils-linux-arm64-{{ victoriametrics_version }}.tar.gz"
+        dest: /tmp/vmutils.tar.gz
+        mode: '0644'
+
+    - name: Extract vmbackup-prod binary
+      ansible.builtin.unarchive:
+        src: /tmp/vmutils.tar.gz
+        dest: /usr/local/bin/
+        include:
+          - vmbackup-prod
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Remove tarball
+      ansible.builtin.file:
+        path: /tmp/vmutils.tar.gz
+        state: absent
+
+- name: Add loguploader to victoriametrics group
+  user:
+    name: loguploader
+    groups: victoriametrics
+    append: true
+
+- name: Install vmbackup cron.daily script
+  copy:
+    src: files/backup_victoriametrics
+    dest: /etc/cron.daily/z-backup_victoriametrics
+    mode: "0755"
+    owner: root

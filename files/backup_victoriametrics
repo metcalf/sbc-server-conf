@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Redirect output to syslog when not run in the terminal
+if [ ! -t 1 ]; then
+    exec 1> >(logger -t vm_backup) 2>&1
+fi
+
+if [ "$EUID" -ne 0 ]; then
+    echo "run as root"
+    exit 1
+fi
+
+sudo -H -u loguploader /usr/local/bin/vmbackup-prod \
+  -storageDataPath=/mnt/ExtData/victoriametrics \
+  -snapshot.createURL=http://127.0.0.1:8428/snapshot/create \
+  -dst="s3://itsshedtime-logs/victoriametrics_backup/$(date +%Y)"
