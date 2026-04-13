@@ -7,7 +7,7 @@
     ansible_remote_tmp: /tmp/ansible/tmp
     nonroot_login_user: andrew
     nodenv_root: /home/{{ nonroot_login_user }}/.nodenv
-    victoriametrics_version: v1.136.3
+    victoriametrics_version: v1.140.0
     usb_partitions:
       - name: ExternalWindowsBackup
         uuid: "3175b897-e7fa-47cb-8e5a-3d87f8bd7c84"
@@ -21,7 +21,7 @@
         keyfile: "/etc/luks-keys/external_misc.key"
         owner: miscbackup
       - name: ExtData
-        uuid: "c74847e7-1814-4cc3-9e99-a09b815d9581"
+        uuid: "22f135a3-f4e4-485f-8b9a-beea2cbca98d"
         owner: root
   tasks:
     - name: Include secrets

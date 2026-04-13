@@ -24,6 +24,7 @@ cryptsetup luksOpen /dev/sda3 ExternalMisc_crypt
 mkfs.ext4 -L WindowsBackup /dev/mapper/ExternalWindowsBackup_crypt/
 mkfs.ext4 -L Misc /dev/mapper/ExternalMisc_crypt
 mkfs.ext4 -L TimeMachine /dev/sda2
+mkfs.ext4 -L ExtData /dev/sda4
 
 # Create secure directory for keys
 mkdir -p /etc/luks-keys
@@ -41,4 +42,4 @@ cryptsetup luksAddKey /dev/sda1 /etc/luks-keys/external_windowsbackup.key
 cryptsetup luksAddKey /dev/sda3 /etc/luks-keys/external_misc.key
 
 # Read block IDs for copying into playbook.yml vars
-blkid /dev/sda1 /dev/sda2 /dev/sda3
+blkid /dev/sda1 /dev/sda2 /dev/sda3 /dev/sda4
