@@ -10,7 +10,8 @@ parted /dev/sda
 mklabel gpt
 mkpart WindowsBackup ext4 1MiB 500GiB
 mkpart TimeMachine ext4 500GiB 2000GiB
-mkpart Misc ext4 2000GiB 100%
+mkpart Misc ext4 2000GiB 1200GiB
+mkpart ExtData ext4 3200GiB 100%
 print
 quit
 

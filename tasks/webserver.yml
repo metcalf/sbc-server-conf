@@ -88,7 +88,6 @@
     - home-sbc-server-local.itsshedtime.com
     - homeassistant
     - homeapps
-  tags: wip
 
 - name: Create site directories
   file:
@@ -103,7 +102,6 @@
     path: /var/www/homeapps/.well-known/appspecific
     mode: "0755"
     state: directory
-  tags: wip
 
 - name: Serve Tesla Fleet public key
   copy:
@@ -114,7 +112,6 @@
       MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEOngYiCNQizmg3T5w+cRxq7GnEMPx
       TfBP8uIGMk+Srarwo4saDqErMECrbl5cXJwUsZEWp7HocaTJ6ows5vU8Gw==
       -----END PUBLIC KEY-----
-  tags: wip
 
 # For some reason my version of iptables doesn't like the multiport directive ufw uses
 # to have multiple ports in a single rule so we need to set 80 and 443 separately.
