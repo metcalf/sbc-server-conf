@@ -1,0 +1,68 @@
+---
+- name: Create victoriametrics group
+  group:
+    name: victoriametrics
+    state: present
+    system: true
+
+- name: Create victoriametrics user
+  user:
+    name: victoriametrics
+    group: victoriametrics
+    system: true
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: false
+
+- name: Create victoriametrics data directory
+  file:
+    path: /mnt/ExtData/victoriametrics
+    state: directory
+    owner: victoriametrics
+    group: victoriametrics
+    mode: '0750'
+
+- name: Check installed VictoriaMetrics version
+  ansible.builtin.command: /usr/local/bin/victoria-metrics-prod -version
+  register: vm_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Download and install VictoriaMetrics binary
+  when: victoriametrics_version not in (vm_version_check.stdout | default(''))
+  block:
+    - name: Download VictoriaMetrics tarball
+      ansible.builtin.get_url:
+        url: "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/{{ victoriametrics_version }}/victoria-metrics-linux-arm64-{{ victoriametrics_version }}.tar.gz"
+        dest: /tmp/victoria-metrics.tar.gz
+        mode: '0644'
+
+    - name: Extract VictoriaMetrics binary
+      ansible.builtin.unarchive:
+        src: /tmp/victoria-metrics.tar.gz
+        dest: /usr/local/bin/
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      notify: restart victoriametrics
+
+    - name: Remove tarball
+      ansible.builtin.file:
+        path: /tmp/victoria-metrics.tar.gz
+        state: absent
+
+- name: Install VictoriaMetrics systemd unit
+  template:
+    src: templates/victoriametrics.service.j2
+    dest: /etc/systemd/system/victoriametrics.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart victoriametrics
+
+- name: Enable and start VictoriaMetrics
+  systemd_service:
+    name: victoriametrics
+    enabled: true
+    state: started

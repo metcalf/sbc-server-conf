@@ -46,3 +46,8 @@
   service:
     name: mosquitto
     state: restarted
+
+- name: restart victoriametrics
+  service:
+    name: victoriametrics
+    state: restarted

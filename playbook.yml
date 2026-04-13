@@ -7,6 +7,7 @@
     ansible_remote_tmp: /tmp/ansible/tmp
     nonroot_login_user: andrew
     nodenv_root: /home/{{ nonroot_login_user }}/.nodenv
+    victoriametrics_version: v1.136.3
     usb_partitions:
       - name: ExternalWindowsBackup
         uuid: "3175b897-e7fa-47cb-8e5a-3d87f8bd7c84"
@@ -34,6 +35,7 @@
     - import_tasks: tasks/ical-filter-proxy.yml
     - import_tasks: tasks/webserver.yml
     - import_tasks: tasks/mosquitto.yml
+    - import_tasks: tasks/victoriametrics.yml
     - import_tasks: tasks/homeassistant.yml
   handlers:
     - import_tasks: handlers/main.yml

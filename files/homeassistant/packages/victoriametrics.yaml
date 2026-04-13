@@ -1,0 +1,8 @@
+influxdb:
+  api_version: 1
+  host: 127.0.0.1
+  port: 8428
+  database: home_assistant
+  ssl: false
+  verify_ssl: false
+  max_retries: 3
