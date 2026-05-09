@@ -175,6 +175,54 @@
         state: absent
       when: version_check.rc != 0
 
+- name: Download and install HACS custom component
+  tags: wip
+  vars:
+    hacs_version: "2.0.5"
+    dest_dir: /var/local/homeassistant/custom_components/hacs
+  block:
+    - name: Check if correct HACS version is already installed
+      ansible.builtin.shell: |
+        if [ -f {{ dest_dir }}/manifest.json ]; then
+          grep -q '"version": "{{ hacs_version }}"' {{ dest_dir }}/manifest.json
+        else
+          exit 1
+        fi
+      register: hacs_version_check
+      failed_when: false
+      changed_when: false
+
+    - name: Download HACS zip file
+      ansible.builtin.get_url:
+        url: https://github.com/hacs/integration/releases/download/{{ hacs_version }}/hacs.zip
+        dest: /tmp/hacs.zip
+        mode: '0644'
+      when: hacs_version_check.rc != 0
+
+    - name: Ensure hacs directory exists
+      ansible.builtin.file:
+        path: "{{ dest_dir }}"
+        state: directory
+        mode: '0755'
+        owner: homeassistant
+        group: homeassistant
+      when: hacs_version_check.rc != 0
+
+    - name: Unzip HACS to custom_components
+      ansible.builtin.unarchive:
+        src: /tmp/hacs.zip
+        dest: "{{ dest_dir }}"
+        remote_src: yes
+        owner: homeassistant
+        group: homeassistant
+      when: hacs_version_check.rc != 0
+
+    - name: Clean up HACS zip file
+      ansible.builtin.file:
+        path: /tmp/hacs.zip
+        state: absent
+      when: hacs_version_check.rc != 0
+
 - name: Start docker
   systemd_service:
     name: docker

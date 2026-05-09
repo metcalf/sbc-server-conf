@@ -1,0 +1,16 @@
+---
+notify:
+  - name: healthchecks_io
+    platform: rest
+    resource: https://hc-ping.com/a75c0407-286c-4e69-bb55-ada3d11b467f
+    method: POST_JSON
+automation:
+  - alias: "Healthchecks.io: HA heartbeat"
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    action:
+      - service: notify.healthchecks_io
+        data:
+          message: "ok"
+    mode: single

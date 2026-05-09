@@ -106,9 +106,18 @@ areas = [
         ],
         "trigger_buttons": [
             ["button.2nd_floor_family_room_by_stairs_position_1_keypad_family_bright"],
-            ["button.2nd_floor_family_room_by_stairs_position_1_keypad_family_ambient"],
-            ["button.2nd_floor_family_room_by_stairs_position_1_keypad_family_dim"],
-            ["button.2nd_floor_family_room_by_stairs_position_1_keypad_others_dim"],
+            [
+                "button.2nd_floor_family_room_by_stairs_position_1_keypad_family_ambient",
+                "button.2nd_floor_family_room_exterior_door_position_1_keypad_hall",
+            ],
+            [
+                "button.2nd_floor_family_room_by_stairs_position_1_keypad_family_dim",
+                "button.2nd_floor_family_room_exterior_door_position_1_keypad_family",
+            ],
+            [
+                "button.2nd_floor_family_room_by_stairs_position_1_keypad_others_dim",
+                "button.2nd_floor_family_room_exterior_door_position_1_keypad_floor_off",
+            ],
         ],
         "action_buttons": [
             "button.equipment_phantom_position_1_keypad_family_room_bright",
