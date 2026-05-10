@@ -77,14 +77,6 @@
   with_list:
     - automation
 
-- name: Place envisalink config
-  template:
-    src: templates/homeassistant/envisalink.yaml.j2
-    dest: /var/local/homeassistant/packages/envisalink.yaml
-    mode: '0644'
-    owner: homeassistant
-    group: homeassistant
-
 - name: Place wunderground sensor config
   template:
     src: templates/homeassistant/wunderground.yaml.j2
@@ -129,7 +121,6 @@
     proto: tcp
 
 - name: Download and install HACS custom component
-  tags: wip
   vars:
     dest_dir: /var/local/homeassistant/custom_components/hacs
   block:
