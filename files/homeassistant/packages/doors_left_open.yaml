@@ -1,0 +1,75 @@
+---
+binary_sensor:
+  - platform: group
+    unique_id: 1f_doors_and_windows
+    name: 1F doors and windows
+    device_class: opening
+    entities:
+      - binary_sensor.den_door
+      - binary_sensor.guest_bedroom_window
+      - binary_sensor.shop_front_door
+      - binary_sensor.shop_rear_door
+      - binary_sensor.door_to_garage
+  - platform: group
+    unique_id: 2f_doors_and_windows
+    name: 2F doors and windows
+    device_class: opening
+    entities:
+      - binary_sensor.family_room_door
+      - binary_sensor.front_door
+      - binary_sensor.kitchen_door
+
+template:
+  - binary_sensor:
+    - unique_id: "pbr_left_open"
+      name: "PBR door left open"
+      state: "{{ is_state('binary_sensor.pbr_door', 'on') }}"
+      delay_on:
+            minutes: 5
+    - unique_id: "1f_left_open"
+      name: "1F left open"
+      state: "{{ is_state('binary_sensor.1f_doors_and_windows', 'on') }}"
+      delay_on:
+            minutes: 5
+    - unique_id: "2f_left_open"
+      name: "2F left open"
+      state: "{{ is_state('binary_sensor.2f_doors_and_windows', 'on') }}"
+      delay_on:
+            minutes: 5
+    - name: "PBR door left open with heat running"
+      unique_id: pbr_door_open_heating_loss
+      state: >
+        {{ is_state('binary_sensor.pbr_door_left_open', 'on')
+          and is_state_attr('climate.hvac_ctrl_pbr', 'hvac_action', 'heating') }}
+      device_class: problem
+    - name: "1F door or window left open with heat running"
+      unique_id: 1f_open_heating_loss
+      state: >
+        {{ is_state('binary_sensor.1f_left_open', 'on')
+          and is_state_attr('climate.guestbedroom', 'hvac_action', 'heating') }}
+      device_class: problem
+    - name: "2F door or window left open with heat running"
+      unique_id: 2f_open_heating_loss
+      state: >
+        {{ is_state('binary_sensor.2f_left_open', 'on')
+          and is_state_attr('climate.hvac_ctrl_2f', 'hvac_action', 'heating') }}
+      device_class: problem
+
+automation:
+  - alias: "Notify on heating loss"
+    id: notify_heating_loss
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.1f_open_with_heating_loss
+          - binary_sensor.2f_open_with_heating_loss
+          - binary_sensor.pbr_door_open_with_heating_loss
+        from: "off"
+        to: "on"
+    action:
+      - service: notify.mobile_app_andrews_iphone
+        data:
+          message: "{{ trigger.to_state.attributes.friendly_name }}"
+      - service: notify.mobile_app_morgan_s_iphone
+        data:
+          message: "{{ trigger.to_state.attributes.friendly_name }}"
