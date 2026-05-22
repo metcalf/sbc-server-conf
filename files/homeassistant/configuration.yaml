@@ -36,3 +36,10 @@ notify:
         severity: "{{ data.severity | default('warning') }}"
         timestamp: "{{ now().isoformat() }}"
         custom_details: {}
+
+sonos:
+  media_player:
+    hosts:
+      # Main bathroom Sonos. Specifying a single, hard-wired device here
+      # should ensure we connect to the correct household, not Cici's bedroom.
+      - 192.0.0.206
