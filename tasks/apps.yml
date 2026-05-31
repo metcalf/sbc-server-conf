@@ -125,3 +125,18 @@
     src: pollen_weekly_summary_cron.j2
     dest: /etc/cron.d/pollen_weekly_summary
     mode: "0600"
+
+# SF Events (plra.io)
+- name: sf events script
+  copy:
+    src: files/sf_events.py
+    dest: /usr/local/bin/sf_events.py
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: sf events cron
+  template:
+    src: sf_events_cron.j2
+    dest: /etc/cron.d/sf_events
+    mode: "0600"
