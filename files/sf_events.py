@@ -36,7 +36,7 @@ SENT_IDS_FILE = "/var/lib/sf_events_sent.txt"
 SMTP_SERVER = "smtppro.zoho.com"
 SMTP_PORT = 465
 SENDER_EMAIL = "homeserver@itsshedtime.com"
-RECIPIENT_EMAILS = ["agmetcalf@gmail.com", "morgandavismetcalf@gmail.com"]
+RECIPIENT_EMAILS = ["agmetcalf@gmail.com"]
 EMAIL_SUBJECT = "🎉 New SF Events on Plura"
 
 # ─── FETCH EVENTS ────────────────────────────────────────────────────────────
@@ -71,7 +71,9 @@ def fetch_all_events(days_ahead: int) -> list:
             if starts_at > cutoff:
                 done = True
                 break
-            all_events.append(event)
+            loc = event.get("location") or {}
+            if loc.get("city") == "San Francisco":
+                all_events.append(event)
         if done or next_page is None:
             break
         page = next_page
