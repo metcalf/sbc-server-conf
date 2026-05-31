@@ -21,6 +21,19 @@ services:
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+  tesla_ble_mqtt:
+    image: iainbullock/tesla_ble_mqtt:latest
+    container_name: tesla_ble_mqtt
+    network_mode: host
+    privileged: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - /run/dbus:/run/dbus
+      - /var/local/tesla-ble-mqtt:/share/tesla_ble_mqtt
+    env_file:
+      - /var/local/tesla-ble-mqtt/mqtt.env
+    restart: unless-stopped
   matter-server:
     image: ghcr.io/home-assistant-libs/python-matter-server:stable
     container_name: matter-server

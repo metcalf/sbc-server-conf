@@ -160,6 +160,22 @@
         state: absent
       when: not hacs_dir.stat.exists
 
+- name: Create tesla-ble-mqtt config directory
+  file:
+    path: /var/local/tesla-ble-mqtt
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Template tesla-ble-mqtt env file
+  template:
+    src: templates/tesla-ble-mqtt.env.j2
+    dest: /var/local/tesla-ble-mqtt/mqtt.env
+    mode: '0600'
+    owner: root
+    group: root
+
 - name: Start docker
   systemd_service:
     name: docker
