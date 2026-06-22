@@ -24,20 +24,20 @@
       data:
         type: daily
       target:
-        entity_id: weather.openweathermap
+        entity_id: weather.pirateweather
       response_variable: daily
   sensor:
     - name: Weather Forecast - Today
       unique_id: weather_forecast_today
-      state: "{{ daily['weather.openweathermap'].forecast[0].datetime }}"
+      state: "{{ daily['weather.pirateweather'].forecast[0].datetime }}"
       attributes:
-        condition: "{{ daily['weather.openweathermap'].forecast[0].condition }}"
-        temperature: "{{ daily['weather.openweathermap'].forecast[0].temperature }}"
-        temp_low: "{{ daily['weather.openweathermap'].forecast[0].templow }}"
-        precipitation: "{{ daily['weather.openweathermap'].forecast[0].precipitation }}"
-        precipitation_probability: "{{ daily['weather.openweathermap'].forecast[0].precipitation_probability }}"
-        wind_bearing: "{{ daily['weather.openweathermap'].forecast[0].wind_bearing }}"
-        wind_speed: "{{ daily['weather.openweathermap'].forecast[0].wind_speed }}"
-        humidity: "{{ daily['weather.openweathermap'].forecast[0].humidity }}"
-        pressure: "{{ daily['weather.openweathermap'].forecast[0].pressure }}"
-        uv_index: "{{ daily['weather.openweathermap'].forecast[0].uv_index }}"
+        condition: "{{ daily['weather.pirateweather'].forecast[0].condition }}"
+        temperature: "{{ daily['weather.pirateweather'].forecast[0].temperature }}"
+        temp_low: "{{ daily['weather.pirateweather'].forecast[0].templow }}"
+        precipitation: "{{ daily['weather.pirateweather'].forecast[0].precipitation }}"
+        precipitation_probability: "{{ daily['weather.pirateweather'].forecast[0].precipitation_probability }}"
+        wind_bearing: "{{ daily['weather.pirateweather'].forecast[0].wind_bearing }}"
+        wind_speed: "{{ daily['weather.pirateweather'].forecast[0].wind_speed }}"
+        humidity: "{{ daily['weather.pirateweather'].forecast[0].humidity }}"
+        pressure: "{{ daily['weather.pirateweather'].forecast[0].pressure }}"
+        uv_index: "{{ daily['weather.pirateweather'].forecast[0].uv_index }}"
