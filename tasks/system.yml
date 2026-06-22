@@ -18,6 +18,17 @@
     group: root
     mode: '0644'
 
+# The CM5 defaults to the onboard PCB antenna. dtparam=ant2 selects the
+# external u.FL antenna connector instead. Requires a reboot to take effect.
+- name: Use external WiFi antenna on CM5
+  lineinfile:
+    path: /boot/firmware/config.txt
+    line: dtparam=ant2
+    insertafter: '^\[cm5\]'
+    state: present
+  notify:
+    - reboot
+
 - name: sshd config
   copy:
     src: files/sshd_config
