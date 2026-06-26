@@ -37,31 +37,6 @@
       export PATH="{{ nodenv_root }}/bin:$PATH"
       eval "$(nodenv init -)"
 
-# Mila control
-- name: mila control script
-  copy:
-    src: files/mila_ctrl.py
-    dest: /usr/local/bin/mila_ctrl.py
-
-- name: mila control cron script
-  template:
-    src: templates/mila_ctrl_cron.j2
-    dest: /usr/local/bin/mila_ctrl_cron
-    mode: "0755"
-
-- name: Run mila control via cron every 5 minutes
-  copy:
-    content: "*/5 * * * * root /usr/local/bin/mila_ctrl_cron\n"
-    dest: /etc/cron.d/mila_ctrl
-    mode: "0644"
-
-- name: Rotate mila control logs
-  copy:
-    src: files/mila_ctrl.logrotate.conf
-    dest: /etc/logrotate.d/mila_ctrl
-    mode: "0644"
-    validate: logrotate -d %s
-
 # TODO: This needs to be updated since switching to Raspberry Pi but I'm not using it at the moment
 # tdlib for the Telegram api
 # to build follow https://tdlib.github.io/td/build.html?language=JavaScript, follow instruction to only build tdjson/tdjson_static https://github.com/tdlib/td/tree/master?tab=readme-ov-file#building
