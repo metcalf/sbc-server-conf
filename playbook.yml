@@ -23,6 +23,11 @@
       - name: ExtData
         uuid: "22f135a3-f4e4-485f-8b9a-beea2cbca98d"
         owner: root
+        # VictoriaMetrics writes here continuously. ext4's default on error is
+        # to log and keep going, which let a corruption event in Apr 2026 rack
+        # up 258 errors unnoticed while VM kept writing on top of it. Going
+        # read-only instead stops the damage at the first error and fails loudly.
+        extra_opts: ",errors=remount-ro"
   tasks:
     - name: Include secrets
       include_vars: secrets.yml

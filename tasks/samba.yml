@@ -41,7 +41,7 @@
     path: "/mnt/{{ item.name }}"
     src: "/dev/mapper/{{ item.name }}_crypt"
     fstype: ext4
-    opts: "defaults,nofail,x-systemd.device-timeout=30,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service"
+    opts: "defaults,nofail,x-systemd.device-timeout=30,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service{{ item.extra_opts | default('') }}"
     dump: 0
     passno: 2
     state: mounted
@@ -53,7 +53,7 @@
     path: "/mnt/{{ item.name }}"
     src: "UUID={{ item.uuid }}"
     fstype: ext4
-    opts: "defaults,nofail,x-systemd.device-timeout=10"
+    opts: "defaults,nofail,x-systemd.device-timeout=10{{ item.extra_opts | default('') }}"
     dump: 0
     passno: 2
     state: mounted
