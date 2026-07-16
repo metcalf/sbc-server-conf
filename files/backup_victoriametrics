@@ -13,7 +13,12 @@ fi
 
 VM_URL="http://127.0.0.1:8428"
 DATA_PATH="/mnt/ExtData/victoriametrics"
-S3_DST="s3://itsshedtime-logs/victoriametrics_backup/victoriametrics-$(date +%Y%m%d).tgz"
+
+# Rotate over a fixed set of slots so storage stays bounded (no per-day accumulation)
+N_BACKUPS=15
+# `10#` prefix is required to avoid a leading zero being interpreted as an octal number
+BACKUP_NUMBER=$(( 10#$(date +%j) % N_BACKUPS ))
+S3_DST="s3://itsshedtime-logs/victoriametrics_backup/victoriametrics_${BACKUP_NUMBER}.tgz"
 
 # Create a consistent snapshot and capture its name from the JSON response
 snapshot_name=$(curl -sSf "$VM_URL/snapshot/create" | grep -o '"snapshot":"[^"]*"' | cut -d'"' -f4)
@@ -31,11 +36,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Archive the whole snapshot into a single gzipped tarball, and let the
-# victoriametrics group (which loguploader is a member of) read it for the
-# upload.
-tgz_path=$(mktemp -t vmbackup.XXXXXX.tgz)
-tar -czf "$tgz_path" -C "$snapshot_path" .
+# Archive the whole snapshot into a single gzipped tarball. Keep it on the data
+# drive so we don't fill the root filesystem, and let the victoriametrics group
+# (which loguploader is a member of) read it for the upload.
+# -h/--dereference is required: a VictoriaMetrics snapshot's data/{small,big,indexdb}
+# are symlinks into the per-table snapshot dirs, so without it tar only archives
+# the symlinks and produces a near-empty tarball.
+tgz_path=$(mktemp -p "$DATA_PATH" vmbackup.XXXXXX.tgz)
+tar -czhf "$tgz_path" -C "$snapshot_path" .
 chgrp victoriametrics "$tgz_path"
 chmod 0640 "$tgz_path"
 
