@@ -29,6 +29,22 @@
   notify:
     - reboot
 
+- name: Read ext4 error behavior
+  command: "dumpe2fs -h {{ item }}"
+  register: ext4_superblock
+  changed_when: false
+  check_mode: false
+  loop: "{{ ext4_remount_ro_devices }}"
+
+# tune2fs -e always exits 0 and reports success even when nothing changed, so
+# gate it on the superblock read above to keep this idempotent.
+- name: Fail read-only on ext4 errors instead of continuing
+  command: "tune2fs -e remount-ro {{ item.item }}"
+  when: item.stdout is not search('Errors behavior:\s+Remount read-only')
+  loop: "{{ ext4_superblock.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
 - name: sshd config
   copy:
     src: files/sshd_config

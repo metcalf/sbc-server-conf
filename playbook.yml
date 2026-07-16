@@ -23,11 +23,17 @@
       - name: ExtData
         uuid: "22f135a3-f4e4-485f-8b9a-beea2cbca98d"
         owner: root
-        # VictoriaMetrics writes here continuously. ext4's default on error is
-        # to log and keep going, which let a corruption event in Apr 2026 rack
-        # up 258 errors unnoticed while VM kept writing on top of it. Going
-        # read-only instead stops the damage at the first error and fails loudly.
-        extra_opts: ",errors=remount-ro"
+    # Every ext4 filesystem here, including the SD card root. mkfs defaults to
+    # logging errors and carrying on, which let a corruption event in Apr 2026
+    # rack up 258 errors on ExtData unnoticed while VictoriaMetrics kept writing
+    # on top of it. Setting this in the superblock (rather than only in fstab)
+    # also covers the kernel's initial mount of / and any manual mount.
+    ext4_remount_ro_devices:
+      - /dev/mmcblk0p2                            # /
+      - /dev/sda2                                 # /mnt/ExternalTimeMachine
+      - /dev/sda4                                 # /mnt/ExtData
+      - /dev/mapper/ExternalWindowsBackup_crypt
+      - /dev/mapper/ExternalMisc_crypt
   tasks:
     - name: Include secrets
       include_vars: secrets.yml

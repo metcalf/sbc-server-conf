@@ -36,12 +36,15 @@
     group: "{{ item.owner | default('root') }}"
   loop: "{{ usb_partitions }}"
 
+# errors=remount-ro: go read-only on the first filesystem error rather than
+# ext4's default of logging it and continuing to write. See ext4_remount_ro_devices
+# in playbook.yml, which sets the same behaviour in the superblock.
 - name: Mount encrypted USB partitions and add to fstab
   mount:
     path: "/mnt/{{ item.name }}"
     src: "/dev/mapper/{{ item.name }}_crypt"
     fstype: ext4
-    opts: "defaults,nofail,x-systemd.device-timeout=30,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service{{ item.extra_opts | default('') }}"
+    opts: "defaults,nofail,errors=remount-ro,x-systemd.device-timeout=30,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service"
     dump: 0
     passno: 2
     state: mounted
@@ -53,7 +56,7 @@
     path: "/mnt/{{ item.name }}"
     src: "UUID={{ item.uuid }}"
     fstype: ext4
-    opts: "defaults,nofail,x-systemd.device-timeout=10{{ item.extra_opts | default('') }}"
+    opts: "defaults,nofail,errors=remount-ro,x-systemd.device-timeout=10"
     dump: 0
     passno: 2
     state: mounted
