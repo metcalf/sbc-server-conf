@@ -11,7 +11,32 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-sudo -H -u loguploader /usr/local/bin/vmbackup-prod \
-  -storageDataPath=/mnt/ExtData/victoriametrics \
-  -snapshot.createURL=http://127.0.0.1:8428/snapshot/create \
-  -dst="s3://itsshedtime-logs/victoriametrics_backup/$(date +%Y)"
+VM_URL="http://127.0.0.1:8428"
+DATA_PATH="/mnt/ExtData/victoriametrics"
+S3_DST="s3://itsshedtime-logs/victoriametrics_backup/victoriametrics-$(date +%Y%m%d).tgz"
+
+# Create a consistent snapshot and capture its name from the JSON response
+snapshot_name=$(curl -sSf "$VM_URL/snapshot/create" | grep -o '"snapshot":"[^"]*"' | cut -d'"' -f4)
+if [ -z "$snapshot_name" ]; then
+    echo "failed to create snapshot" >&2
+    exit 3
+fi
+snapshot_path="$DATA_PATH/snapshots/$snapshot_name"
+
+# Always remove the snapshot and temp archive, even on failure
+tgz_path=""
+cleanup() {
+    curl -sSf "$VM_URL/snapshot/delete?snapshot=$snapshot_name" || true
+    [ -n "$tgz_path" ] && rm -f "$tgz_path"
+}
+trap cleanup EXIT
+
+# Archive the whole snapshot into a single gzipped tarball, and let the
+# victoriametrics group (which loguploader is a member of) read it for the
+# upload.
+tgz_path=$(mktemp -t vmbackup.XXXXXX.tgz)
+tar -czf "$tgz_path" -C "$snapshot_path" .
+chgrp victoriametrics "$tgz_path"
+chmod 0640 "$tgz_path"
+
+sudo -H -u loguploader /snap/bin/aws s3 cp "$tgz_path" "$S3_DST"
