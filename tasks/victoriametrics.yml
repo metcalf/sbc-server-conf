@@ -82,6 +82,29 @@
     heartbeat_url: https://hc-ping.com/ad14e2f5-fcea-49ff-a821-284e04bc2edf
     heartbeat_status_arg: $1
 
+- name: Create healthcheck heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /var/local/victoriametrics_healthcheck_heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/a3a245d2-32a4-4fd2-bc39-26af7190b865
+    heartbeat_status_arg: $1
+
+- name: Install healthcheck script
+  copy:
+    src: files/check_victoriametrics
+    dest: /usr/local/bin/check_victoriametrics
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Install healthcheck cron
+  copy:
+    src: files/victoriametrics_healthcheck.cron
+    dest: /etc/cron.d/victoriametrics_healthcheck
+    mode: "0600"
+
 - name: Install vmbackup cron.daily script
   copy:
     src: files/backup_victoriametrics

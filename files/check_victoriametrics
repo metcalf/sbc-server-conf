@@ -1,0 +1,59 @@
+#!/bin/bash
+set -euo pipefail
+
+# Redirect output to syslog when not run in the terminal
+if [ ! -t 1 ]; then
+    exec 1> >(logger -t vm_healthcheck) 2>&1
+fi
+
+if [ "$EUID" -ne 0 ]; then
+    echo "run as root"
+    exit 1
+fi
+
+VM_URL="http://127.0.0.1:8428"
+
+# Report the exit status to healthchecks.io. A non-zero status alerts right
+# away; if this host dies entirely the missing ping trips the grace period.
+trap 'exit_code=$?; /var/local/victoriametrics_healthcheck_heartbeat /$exit_code; exit $exit_code' EXIT
+
+# Home Assistant is the only writer using the influx line protocol, so recent
+# influx row inserts prove VictoriaMetrics is both up and still receiving data
+# from it. Reading this needs -selfScrapeInterval on victoria-metrics, which is
+# what makes its own internals queryable.
+QUERY='sum(increase(vm_rows_inserted_total{type="influx"}[10m]))'
+
+# POST so the query's quotes and braces don't need URL escaping
+if ! response=$(curl -sSf -m 30 --data-urlencode "query=$QUERY" "$VM_URL/api/v1/query"); then
+    echo "query failed, victoriametrics is unreachable" >&2
+    exit 3
+fi
+
+# Prints the sample from "value":[<timestamp>,"<value>"], or nothing at all when
+# the result is empty. Parsed with python3 rather than sed because the response
+# is JSON and nothing promises it stays on a single line.
+if ! rows=$(printf '%s' "$response" | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+status = data.get("status")
+if status != "success":
+    sys.exit("query returned status %r: %s" % (status, data))
+result = data.get("data", {}).get("result", [])
+print(result[0]["value"][1] if result else "")
+'); then
+    exit 4
+fi
+
+# An empty result means the metric is absent entirely rather than reporting zero
+if [ -z "$rows" ]; then
+    echo "no vm_rows_inserted_total{type=\"influx\"} sample; is -selfScrapeInterval set?" >&2
+    exit 5
+fi
+
+# Fractional counts are possible, so compare as a float rather than with test -gt
+if ! awk -v rows="$rows" 'BEGIN { exit !(rows + 0 > 0) }'; then
+    echo "no new homeassistant data in the last 10m" >&2
+    exit 6
+fi
