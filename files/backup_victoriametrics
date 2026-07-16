@@ -20,6 +20,24 @@ N_BACKUPS=15
 BACKUP_NUMBER=$(( 10#$(date +%j) % N_BACKUPS ))
 S3_DST="s3://itsshedtime-logs/victoriametrics_backup/victoriametrics_${BACKUP_NUMBER}.tgz"
 
+# Always remove the snapshot and temp archive and report the status, even on
+# failure. Installed before the snapshot is created so failures there are
+# reported too; the guards cover the variables not being set yet.
+snapshot_name=""
+tgz_path=""
+cleanup() {
+    exit_code=$?
+    if [ -n "$snapshot_name" ]; then
+        curl -sSf "$VM_URL/snapshot/delete?snapshot=$snapshot_name" || true
+    fi
+    if [ -n "$tgz_path" ]; then
+        rm -f "$tgz_path"
+    fi
+    /var/local/victoriametrics_backup_heartbeat /$exit_code
+    exit $exit_code
+}
+trap cleanup EXIT
+
 # Create a consistent snapshot and capture its name from the JSON response
 snapshot_name=$(curl -sSf "$VM_URL/snapshot/create" | grep -o '"snapshot":"[^"]*"' | cut -d'"' -f4)
 if [ -z "$snapshot_name" ]; then
@@ -27,14 +45,6 @@ if [ -z "$snapshot_name" ]; then
     exit 3
 fi
 snapshot_path="$DATA_PATH/snapshots/$snapshot_name"
-
-# Always remove the snapshot and temp archive, even on failure
-tgz_path=""
-cleanup() {
-    curl -sSf "$VM_URL/snapshot/delete?snapshot=$snapshot_name" || true
-    [ -n "$tgz_path" ] && rm -f "$tgz_path"
-}
-trap cleanup EXIT
 
 # Archive the whole snapshot into a single gzipped tarball. Keep it on the data
 # drive so we don't fill the root filesystem, and let the victoriametrics group

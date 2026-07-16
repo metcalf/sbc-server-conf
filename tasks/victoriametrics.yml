@@ -73,6 +73,15 @@
     groups: victoriametrics
     append: true
 
+- name: Create backup heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /var/local/victoriametrics_backup_heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/ad14e2f5-fcea-49ff-a821-284e04bc2edf
+    heartbeat_status_arg: $1
+
 - name: Install vmbackup cron.daily script
   copy:
     src: files/backup_victoriametrics
