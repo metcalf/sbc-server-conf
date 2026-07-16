@@ -1,12 +1,20 @@
 ---
+- name: Ensure apt keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
 - name: Add Docker GPG apt Key
-  apt_key:
+  get_url:
     url: https://download.docker.com/linux/debian/gpg
-    state: present
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
 
 - name: Add Docker Repository
   apt_repository:
-    repo: deb https://download.docker.com/linux/debian bookworm stable
+    repo: "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable"
+    filename: docker
     state: present
   register: dockerrepo
 
