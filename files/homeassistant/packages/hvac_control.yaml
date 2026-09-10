@@ -4,12 +4,12 @@ automation:
     id: mqtt_publish_on_vacation
     trigger:
       - platform: state
-        entity_id: binary_sensor.on_vacation
+        entity_id: binary_sensor.on_vacation_hvac
     action:
       - service: mqtt.publish
         data:
           topic: "home/global/on_vacation"
-          payload: "{{ 1 if is_state('binary_sensor.on_vacation', 'on') else 0 }}"
+          payload: "{{ 1 if is_state('binary_sensor.on_vacation_hvac', 'on') else 0 }}"
           retain: true
   - alias: "Publish outdoor temp (°C)"
     id: mqtt_publish_outdoor_temp_c
