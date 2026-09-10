@@ -15,20 +15,35 @@ automation:
     id: mqtt_publish_outdoor_temp_c
     trigger:
       - platform: state
-        entity_id: sensor.most_recent_local_weather
+        entity_id:
+          - sensor.zone_controller_ambient_temperature
+          - sensor.most_recent_local_weather
+    variables:
+      zone: sensor.zone_controller_ambient_temperature
+      pws: sensor.most_recent_local_weather
+      # The zone controller reports °F and carries no observation time of its
+      # own, so freshness and epoch both come from last_updated.
+      zone_ok: >
+        {{ states(zone) | is_number
+           and (now() - states[zone].last_updated).total_seconds() < 600 }}
+      pws_ok: >
+        {{ states(pws) | is_number and state_attr(pws, 'epoch') is not none }}
+      temp_c: >
+        {{ ((states(zone) | float - 32) / 1.8) if zone_ok
+           else (states(pws) | float(0)) }}
+      epoch: >
+        {{ (states[zone].last_updated | as_timestamp | int) if zone_ok
+           else (state_attr(pws, 'epoch') | int(0)) }}
     condition:
       - condition: template
-        value_template: >
-          {%- set e = 'sensor.most_recent_local_weather' -%}
-          {{ states(e) | is_number and state_attr(e, 'epoch') is not none }}
+        value_template: "{{ zone_ok or pws_ok }}"
     action:
       - service: mqtt.publish
         data:
           topic: "home/global/outdoor_temp_c"
           payload: >
-            {%- set e = 'sensor.most_recent_local_weather' -%}
-            {{ "{:05.1f}".format(min(999, max(0, states(e) | float(0) + 100.0))) }}
-            {{ "{:010d}".format(state_attr(e, 'epoch') | int(0)) }}
+            {{ "{:05.1f}".format(min(999, max(0, temp_c | float(0) + 100.0))) }}
+            {{ "{:010d}".format(epoch | int(0)) }}
           retain: true
   - alias: "Publish air quality index"
     id: mqtt_publish_air_quality_index
