@@ -16,13 +16,19 @@ automation:
     trigger:
       - platform: state
         entity_id: sensor.most_recent_local_weather
+    condition:
+      - condition: template
+        value_template: >
+          {%- set e = 'sensor.most_recent_local_weather' -%}
+          {{ states(e) | is_number and state_attr(e, 'epoch') is not none }}
     action:
       - service: mqtt.publish
         data:
           topic: "home/global/outdoor_temp_c"
           payload: >
-            {{ "{:05.1f}".format(min(999, max(0, states.sensor.most_recent_local_weather.state | float(0) + 100.0))) }}
-            {{ "{:010d}".format(states.sensor.most_recent_local_weather.attributes.epoch | int(0)) }}
+            {%- set e = 'sensor.most_recent_local_weather' -%}
+            {{ "{:05.1f}".format(min(999, max(0, states(e) | float(0) + 100.0))) }}
+            {{ "{:010d}".format(state_attr(e, 'epoch') | int(0)) }}
           retain: true
   - alias: "Publish air quality index"
     id: mqtt_publish_air_quality_index
