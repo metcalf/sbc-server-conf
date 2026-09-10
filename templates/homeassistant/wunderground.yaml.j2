@@ -7,41 +7,22 @@ template:
       unit_of_measurement: °C
       device_class: temperature
       state_class: measurement
-      state: >
-        {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
-        {% set sensors = namespace(list=[]) %}
-        {% for station in stations %}
-          {% set name = 'sensor.weather_station_' + station %}
-          {% set sensor_state = states(name) %}
-          {% set sensor_epoch = state_attr(name, 'epoch') %}
-          {% if sensor_state != 'unknown' and sensor_epoch is not none %}
-            {% set sensors.list = sensors.list + [{'epoch': sensor_epoch, 'state': sensor_state}] %}
-          {% endif %}
-        {% endfor %}
-        {% if sensors.list | count > 0 %}
-          {% set latest = sensors.list | sort(attribute='epoch') | last %}
-          {{ latest.state }}
-        {% else %}
-          0
-        {% endif %}
-      attributes:
-        epoch: >
-          {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
-          {% set sensors = namespace(list=[]) %}
-          {% for station in stations %}
-            {% set name = 'sensor.weather_station_' + station %}
-            {% set sensor_state = states(name) %}
-            {% set sensor_epoch = state_attr(name, 'epoch') %}
-            {% if sensor_state != 'unknown' and sensor_epoch is not none %}
-              {% set sensors.list = sensors.list + [{'epoch': sensor_epoch, 'state': sensor_state}] %}
+      variables:
+        latest: >
+          {% set ns = namespace(list=[]) %}
+          {% for station in {% endraw %}{{ stations | tojson }}{% raw %} %}
+            {% set e = 'sensor.weather_station_' ~ station | lower %}
+            {% set s = states(e) %}
+            {% set ep = state_attr(e, 'epoch') %}
+            {% if s | is_number and ep is not none %}
+              {% set ns.list = ns.list + [{'epoch': ep, 'state': s | float}] %}
             {% endif %}
           {% endfor %}
-          {% if sensors.list | count > 0 %}
-            {% set latest = sensors.list | sort(attribute='epoch') | last %}
-            {{ latest.epoch }}
-          {% else %}
-            0
-          {% endif %}
+          {{ (ns.list | sort(attribute='epoch') | last) if ns.list else none }}
+      availability: "{{ latest is not none }}"
+      state: "{{ latest.state }}"
+      attributes:
+        epoch: "{{ latest.epoch }}"
 {% endraw %}
 
 sensor:
