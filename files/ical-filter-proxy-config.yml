@@ -6,13 +6,13 @@ liveoak:
       - field: summary # summary and description supported
         operator: not-includes # match against regex pattern
         val:
-          # - 'Kinder'
-          - 'First Grade'
-          - '1st Grade'
-          # - 'Second Grade'
-          # - '2nd Grade'
-          - 'Third Grade'
-          - '3rd Grade'
+          - 'Kinder'
+          # - 'First Grade'
+          # - '1st Grade'
+          - 'Second Grade'
+          - '2nd Grade'
+          # - 'Third Grade'
+          # - '3rd Grade'
           - 'Fourth Grade'
           - '4th Grade'
           - 'Fifth Grade'
