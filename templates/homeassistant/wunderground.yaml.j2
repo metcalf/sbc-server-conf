@@ -5,6 +5,8 @@ template:
       default_entity_id: sensor.most_recent_local_weather
       unique_id: "most_recent_local_weather"
       unit_of_measurement: °C
+      device_class: temperature
+      state_class: measurement
       state: >
         {% set stations = {% endraw %}{{ stations | tojson }}{% raw %} %}
         {% set sensors = namespace(list=[]) %}
