@@ -23,6 +23,16 @@ template:
       state: "{{ latest.state }}"
       attributes:
         epoch: "{{ latest.epoch }}"
+    - name: "Most Recent Local PWS Weather (°F)"
+      default_entity_id: sensor.most_recent_local_weather_fahrenheit
+      unique_id: "most_recent_local_weather_fahrenheit"
+      unit_of_measurement: °F
+      device_class: temperature
+      state_class: measurement
+      availability: "{{ states('sensor.most_recent_local_weather') | is_number }}"
+      state: "{{ states('sensor.most_recent_local_weather') | float * 1.8 + 32 }}"
+      attributes:
+        epoch: "{{ state_attr('sensor.most_recent_local_weather', 'epoch') }}"
 {% endraw %}
 
 sensor:
