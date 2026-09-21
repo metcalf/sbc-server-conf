@@ -4,3 +4,30 @@
 # Only non-connection options remain valid here and merge with the config entry.
 influxdb:
   max_retries: 3
+
+  # VictoriaMetrics stores only numeric field values. A string attribute arrives as
+  # "<attr>_str" and is recorded as a literal 0, so these columns carry no
+  # information at all -- 2174 such series, ~7.3M samples/30d, not one of which has
+  # ever held a non-zero value. Dropping them here keeps them off the wire entirely.
+  #
+  # Only attributes that are *always* strings belong on this list: ignore_attributes
+  # suppresses an attribute's numeric form too, so anything with a useful number
+  # (supported_features, target_temp_low, current_temperature) must stay off it.
+  #
+  # Matching is on the exact attribute name, not a suffix -- "mode" does not cover
+  # color_mode/preset_mode/fan_mode, which is why those are listed separately.
+  # Sample counts measured over the 30d before this was added; ~6.17M of 7.28M (85%).
+  ignore_attributes:
+    - friendly_name      # 2,234,009 - present on essentially every entity
+    - device_class       # 1,797,667
+    - state_class        # 1,747,003
+    - icon               #   195,472
+    - mode               #   110,144 - automations, numbers, input_text
+    - hvac_modes         #    27,844
+    - hvac_action        #    27,146 - superseded by the numeric MQTT publish
+    - fan_mode           #    11,233
+    - entity_id          #     9,039
+    - color_mode         #     5,941
+    - attribution        #     3,967
+    - preset_mode        #     2,115
+    - pattern            #       186
