@@ -69,6 +69,88 @@ To set up:
 
 See [CLIENT-CERTS.md](CLIENT-CERTS.md) for detailed instructions.
 
+## Exposing Home Assistant entities to Alexa (Matter)
+
+`home-assistant-matter-hub` runs as the `matter-hub` container (see
+`files/homeassistant/compose.yml`) and publishes HA entities to Alexa as a Matter
+bridge. Ansible installs and configures the container, but the bridge itself and
+its entity list are runtime state stored in matter-hub's own database under
+`/var/local/homeassistant/matter-hub/data`, so they are *not* in this repo. A
+rebuild reinstalls the container but not the bridge; you would re-create and
+re-pair it by hand.
+
+Web UI: http://192.168.0.203:8482 (LAN only -- it has no authentication of its
+own, so ufw restricts 8482 to 192.168.0.0/22).
+
+### Choosing which entities Alexa sees
+
+Apply the `expose-to-alexa` label to entities in Home Assistant (Settings >
+Devices & Services > Entities, multi-select, Add label). The "Alexa" bridge
+filters on that label.
+
+The filter matches the label *id* (`expose_to_alexa`), not the display name
+(`expose-to-alexa`) -- HA slugifies hyphens to underscores when creating a label.
+matter-hub accepts either form, and the label id is immutable once created, so
+renaming the label in the UI will not break the filter.
+
+To add devices once the bridge is paired:
+
+1. Apply the label in HA.
+2. Wait ~60s. matter-hub's refresh adds the bridged endpoint on its own; no
+   restart, and no re-pairing -- the bridge stays commissioned permanently.
+3. If Alexa does not notice, say "Alexa, discover devices" or use
+   Devices > + > Add Device > Discover.
+
+Removing is the messy direction: untagging cleanly removes the endpoint, but
+Alexa usually leaves a ghost device stuck as "unresponsive" that has to be
+deleted by hand in the Alexa app.
+
+### Pairing
+
+Create the bridge on port **5540** -- Alexa rolls back pairing ~20s in on other
+ports. Then pair from the Alexa app.
+
+**Use the 11-digit manual pairing code, not the QR code.** As of Sep 2026 the QR
+scan failed repeatedly with "Alexa couldn't find your Matter device" while the
+manual code worked on the same Echo. This is backwards from what the payload
+implies (the QR encodes `discoveryCaps = on-network only`, the manual code cannot
+express that at all), but it is what actually happened. Alexa also shows a
+"within 30 feet" BLE-style prompt during setup; ignore it, matter-hub has no
+Bluetooth and commissions over IP.
+
+Alexa additionally shows a "not Matter certified" prompt that you must accept.
+matter-hub uses development Matter credentials (vendor ID `0xFFF1`, a Matter test
+vendor ID). Some Echo models reportedly check attestation against the production
+trust store and refuse outright; an Echo Dot on 5GHz accepted it here.
+
+### Debugging discovery
+
+If Alexa cannot find the bridge, check these in order before touching the network
+-- a full investigation in Sep 2026 cleared Omada, IGMP snooping, the 2.4/5GHz
+split and IPv6 entirely, and the answer was the pairing code:
+
+* `curl -s http://127.0.0.1:8482/api/network` -- matter-hub's own diagnostics.
+  All checks should pass and mDNS should be bound to `eth0`.
+* `avahi-browse -rpt _matterc._udp` on another LAN host, or `dns-sd -B
+  _matterc._udp local` on macOS. Note `dns-sd` output is buffered; redirect to a
+  file rather than piping to `head`, or it looks like nothing was found.
+* `tcpdump -i eth0 -n "udp port 5540 or udp port 5353"`. A working Echo sends
+  `ANY (QM)? _matterc._udp.local` and the bridge answers with the PTR plus SRV,
+  TXT and address records. Commissioning then arrives as traffic *to*
+  192.168.0.203:5540. Note the `matter-server` container also uses port 5540 as a
+  *client* from an ephemeral port, which is easy to mistake for bridge traffic.
+
+Notes:
+* Keep it under ~80 devices. Alexa becomes unreliable past roughly 80-100 per
+  bridge. Add a second bridge on 5541 rather than growing this one.
+* Alexa only ever sends "on" for an exposed `automation`: turning it on calls
+  `automation.trigger`, turning it off is a no-op, and its state always reads
+  off. `automation.trigger` defaults to `skip_condition: true`, so **the
+  automation's conditions are skipped** -- move any condition you rely on as a
+  safety check into the action block before exposing it.
+* This is unrelated to the `matter-server` container, which is the opposite
+  direction (lets HA control Matter devices).
+
 TODO:
 * Install loggly, pagerduty
 * Manage loggly agent

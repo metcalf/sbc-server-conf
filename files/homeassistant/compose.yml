@@ -51,3 +51,28 @@ services:
       # - /run/dbus:/run/dbus:ro
     # If you adjust command line, make sure to pass the default CMD arguments too:
     #command: --storage-path /data --paa-root-cert-dir /data/credentials --bluetooth-adapter 0
+  matter-hub:
+    # Publishes HA entities to Matter controllers (Alexa, etc). This is the
+    # opposite direction from matter-server above, which lets HA control
+    # Matter devices. The two coexist; they bind different ports.
+    image: ghcr.io/riddix/home-assistant-matter-hub:latest
+    container_name: matter-hub
+    # Required by Matter: the bridge has to advertise over mDNS on the LAN
+    network_mode: host
+    user: "8123:8123"
+    environment:
+      - HAMH_LOG_LEVEL=info
+      - HAMH_HTTP_PORT=8482
+      # Without this, mDNS also advertises the docker0 address (172.17.0.1)
+      # and controllers that latch onto it show every device as "No Response".
+      - HAMH_MDNS_NETWORK_INTERFACE=eth0
+    env_file:
+      # Holds the HA URL and long-lived token, kept out of this file since
+      # compose.yml is world-readable
+      - /var/local/homeassistant/matter-hub/matter-hub.env
+    volumes:
+      # HAMH_STORAGE_LOCATION=/data is baked into the image
+      - /var/local/homeassistant/matter-hub/data:/data
+    security_opt:
+      - no-new-privileges
+    restart: unless-stopped

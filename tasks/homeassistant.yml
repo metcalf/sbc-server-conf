@@ -57,6 +57,22 @@
     mode: '0755'
     state: directory
 
+- name: Create matter-hub data directory
+  file:
+    path: /var/local/homeassistant/matter-hub/data
+    owner: homeassistant
+    group: homeassistant
+    mode: '0755'
+    state: directory
+
+- name: Template matter-hub env file
+  template:
+    src: templates/homeassistant/matter-hub.env.j2
+    dest: /var/local/homeassistant/matter-hub/matter-hub.env
+    mode: '0600'
+    owner: root
+    group: root
+
 - name: Place compose file
   copy:
     src: files/homeassistant/compose.yml
@@ -127,6 +143,32 @@
     rule: allow
     port: 1400
     proto: tcp
+
+# Matter (home-assistant-matter-hub). Alexa reliably completes pairing only
+# against a bridge on 5540; 5541 is here for a second bridge/fabric. ufw's
+# stock before.rules already permits multicast mDNS, but controllers also send
+# unicast queries to 5353, so allow that explicitly.
+- name: Allow Matter bridge connections
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: Matter bridge
+  with_list:
+    - { port: "5353", proto: udp }
+    - { port: "5540", proto: udp }
+    - { port: "5541", proto: udp }
+    - { port: "5540", proto: tcp }
+    - { port: "5541", proto: tcp }
+
+# The matter-hub web UI is unauthenticated, so keep it on the LAN only.
+- name: Allow matter-hub web UI from the LAN
+  community.general.ufw:
+    rule: allow
+    port: "8482"
+    proto: tcp
+    src: 192.168.0.0/22
+    comment: matter-hub web UI
 
 - name: Download and install HACS custom component
   vars:
