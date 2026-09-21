@@ -39,6 +39,7 @@ sensor:
 {% for station in stations %}
   - platform: rest
     scan_interval: 300
+    timeout: 8
     method: GET
     unit_of_measurement: °C
     value_template: {% raw %}"{{ value_json.observations[0].metric.temp }}"{% endraw +%}
