@@ -57,6 +57,10 @@
     mode: '0755'
     state: directory
 
+# Kept inside /var/local/homeassistant (mounted as /config) on purpose: HA's
+# backup walks all of /config, which picks up the bridge and its Matter fabric
+# credentials for free. Everything here is owned by homeassistant and readable,
+# so the backup can tar it.
 - name: Create matter-hub data directory
   file:
     path: /var/local/homeassistant/matter-hub/data
@@ -65,10 +69,21 @@
     mode: '0755'
     state: directory
 
+- name: Create matter-hub config directory
+  file:
+    path: /var/local/matter-hub
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+
+# The env file, unlike the data, must stay out of /config: it is 0600 root
+# because it holds the HA token, and HA's backup runs as uid 8123, so a copy
+# under /config aborts every automatic backup with a PermissionError.
 - name: Template matter-hub env file
   template:
     src: templates/homeassistant/matter-hub.env.j2
-    dest: /var/local/homeassistant/matter-hub/matter-hub.env
+    dest: /var/local/matter-hub/matter-hub.env
     mode: '0600'
     owner: root
     group: root

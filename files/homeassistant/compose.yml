@@ -67,11 +67,15 @@ services:
       # and controllers that latch onto it show every device as "No Response".
       - HAMH_MDNS_NETWORK_INTERFACE=eth0
     env_file:
-      # Holds the HA URL and long-lived token, kept out of this file since
-      # compose.yml is world-readable
-      - /var/local/homeassistant/matter-hub/matter-hub.env
+      # Holds the HA URL and long-lived token, so it is 0600 root and lives
+      # outside /var/local/homeassistant -- that is mounted as /config, and a
+      # file HA's uid cannot read breaks its backups. Read by the docker
+      # daemon on the host, not by the container, so root-only is fine.
+      - /var/local/matter-hub/matter-hub.env
     volumes:
-      # HAMH_STORAGE_LOCATION=/data is baked into the image
+      # HAMH_STORAGE_LOCATION=/data is baked into the image. This one is
+      # deliberately under /config so HA's backup captures the bridge and its
+      # Matter fabric credentials.
       - /var/local/homeassistant/matter-hub/data:/data
     security_opt:
       - no-new-privileges

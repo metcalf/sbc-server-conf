@@ -79,6 +79,13 @@ its entity list are runtime state stored in matter-hub's own database under
 rebuild reinstalls the container but not the bridge; you would re-create and
 re-pair it by hand.
 
+That path is under `/var/local/homeassistant` (mounted as `/config`) on purpose,
+so HA's backup sweeps up the bridge and its Matter fabric credentials for free.
+`matter-hub.env` is the exception and lives at `/var/local/matter-hub/`: it is
+0600 root because it holds the HA token, and HA's backup runs as uid 8123, so
+keeping it under `/config` aborts every automatic backup with a `PermissionError`
+-- which also breaks the nightly S3 upload, since that looks for a fresh tar.
+
 Web UI: http://192.168.0.203:8482 (LAN only -- it has no authentication of its
 own, so ufw restricts 8482 to 192.168.0.0/22).
 
