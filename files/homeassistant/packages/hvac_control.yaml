@@ -11,6 +11,7 @@ automation:
           topic: "home/global/on_vacation"
           payload: "{{ 1 if is_state('binary_sensor.on_vacation_hvac', 'on') else 0 }}"
           retain: true
+    max_exceeded: silent
   - alias: "Publish outdoor temp (°C)"
     id: mqtt_publish_outdoor_temp_c
     trigger:
@@ -45,6 +46,7 @@ automation:
             {{ "{:05.1f}".format(min(999, max(0, temp_c | float(0) + 100.0))) }}
             {{ "{:010d}".format(epoch | int(0)) }}
           retain: true
+    max_exceeded: silent
   - alias: "Publish air quality index"
     id: mqtt_publish_air_quality_index
     trigger:
@@ -56,3 +58,4 @@ automation:
           topic: "home/global/air_quality_index"
           payload: "{{ states('sensor.airnow_air_quality_index') }}"
           retain: true
+    max_exceeded: silent
