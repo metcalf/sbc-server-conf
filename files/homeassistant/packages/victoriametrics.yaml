@@ -31,3 +31,4 @@ influxdb:
     - attribution        #     3,967
     - preset_mode        #     2,115
     - pattern            #       186
+    - source_name        # new - sensor.outdoor_temperature (hvac_control.yaml)

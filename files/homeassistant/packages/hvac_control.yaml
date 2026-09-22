@@ -1,4 +1,37 @@
 ---
+template:
+  - sensor:
+    # Prefers the zone controller's own probe while it is reporting, falling back
+    # to the freshest nearby PWS observation. The epoch attribute is the time of
+    # the observation, not of this sensor's last update.
+    - name: "Outdoor Temperature"
+      default_entity_id: sensor.outdoor_temperature
+      unique_id: "outdoor_temperature"
+      unit_of_measurement: °C
+      device_class: temperature
+      state_class: measurement
+      variables:
+        zone: sensor.zone_controller_ambient_temperature
+        pws: sensor.most_recent_local_weather
+        # The zone controller reports °F and carries no observation time of its
+        # own, so freshness and epoch both come from last_updated. now() makes
+        # this re-render every minute, so a stale zone controller falls over to
+        # the PWS without waiting for either source to change.
+        zone_ok: >
+          {{ states(zone) | is_number
+             and (now() - states[zone].last_updated).total_seconds() < 600 }}
+        pws_ok: >
+          {{ states(pws) | is_number and state_attr(pws, 'epoch') is not none }}
+      availability: "{{ zone_ok or pws_ok }}"
+      state: >
+        {{ (((states(zone) | float - 32) / 1.8) | round(2)) if zone_ok
+           else (states(pws) | float) }}
+      attributes:
+        epoch: >
+          {{ (states[zone].last_updated | as_timestamp | int) if zone_ok
+             else (state_attr(pws, 'epoch') | int) }}
+        source_name: "{{ 'zone_controller' if zone_ok else 'pws' }}"
+
 automation:
   - alias: "Publish on_vacation"
     id: mqtt_publish_on_vacation
@@ -15,36 +48,19 @@ automation:
   - alias: "Publish outdoor temp (°C)"
     id: mqtt_publish_outdoor_temp_c
     trigger:
+      # No to/from, so this also fires when only the epoch attribute moves.
       - platform: state
-        entity_id:
-          - sensor.zone_controller_ambient_temperature
-          - sensor.most_recent_local_weather
-    variables:
-      zone: sensor.zone_controller_ambient_temperature
-      pws: sensor.most_recent_local_weather
-      # The zone controller reports °F and carries no observation time of its
-      # own, so freshness and epoch both come from last_updated.
-      zone_ok: >
-        {{ states(zone) | is_number
-           and (now() - states[zone].last_updated).total_seconds() < 600 }}
-      pws_ok: >
-        {{ states(pws) | is_number and state_attr(pws, 'epoch') is not none }}
-      temp_c: >
-        {{ ((states(zone) | float - 32) / 1.8) if zone_ok
-           else (states(pws) | float(0)) }}
-      epoch: >
-        {{ (states[zone].last_updated | as_timestamp | int) if zone_ok
-           else (state_attr(pws, 'epoch') | int(0)) }}
+        entity_id: sensor.outdoor_temperature
     condition:
       - condition: template
-        value_template: "{{ zone_ok or pws_ok }}"
+        value_template: "{{ trigger.to_state.state | is_number }}"
     action:
       - service: mqtt.publish
         data:
           topic: "home/global/outdoor_temp_c"
           payload: >
-            {{ "{:05.1f}".format(min(999, max(0, temp_c | float(0) + 100.0))) }}
-            {{ "{:010d}".format(epoch | int(0)) }}
+            {{ "{:05.1f}".format(min(999, max(0, trigger.to_state.state | float(0) + 100.0))) }}
+            {{ "{:010d}".format(trigger.to_state.attributes.epoch | int(0)) }}
           retain: true
     max_exceeded: silent
   - alias: "Publish air quality index"
