@@ -54,12 +54,19 @@ automation:
     condition:
       - condition: template
         value_template: "{{ trigger.to_state.state | is_number }}"
+    variables:
+      # HA converts temperature sensors to the system unit (°F here) unless the
+      # entity registry pins another one, so don't assume the sensor's °C holds.
+      temp_c: >
+        {% set t = trigger.to_state.state | float(0) %}
+        {{ ((t - 32) / 1.8) if trigger.to_state.attributes.unit_of_measurement == '°F'
+           else t }}
     action:
       - service: mqtt.publish
         data:
           topic: "home/global/outdoor_temp_c"
           payload: >
-            {{ "{:05.1f}".format(min(999, max(0, trigger.to_state.state | float(0) + 100.0))) }}
+            {{ "{:05.1f}".format(min(999, max(0, temp_c | float(0) + 100.0))) }}
             {{ "{:010d}".format(trigger.to_state.attributes.epoch | int(0)) }}
           retain: true
     max_exceeded: silent
