@@ -124,9 +124,10 @@
     owner: homeassistant
     group: homeassistant
   vars:
+    # Prefer stations that report solar radiation
     stations:
       - KCASANFR1969
-      - KCASANFR2157
+      - KCASANFR2259
       - KCASANFR2069
 
 - name: Ensure custom_components directory exists
