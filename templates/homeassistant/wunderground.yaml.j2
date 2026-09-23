@@ -1,3 +1,6 @@
+{# Station observation fields exposed as attributes on each station sensor
+   and on the merged most_recent_local_weather sensor. #}
+{% set pws_attributes = ['epoch', 'humidity', 'uv', 'solarRadiation'] %}
 template:
 {% raw %}
   - sensor:
@@ -15,14 +18,18 @@ template:
             {% set s = states(e) %}
             {% set ep = state_attr(e, 'epoch') %}
             {% if s | is_number and ep is not none %}
-              {% set ns.list = ns.list + [{'epoch': ep, 'state': s | float}] %}
+              {% set ns.list = ns.list + [{'epoch': ep, 'state': s | float, 'entity': e}] %}
             {% endif %}
           {% endfor %}
           {{ (ns.list | sort(attribute='epoch') | last) if ns.list else none }}
       availability: "{{ latest is not none }}"
       state: "{{ latest.state }}"
       attributes:
-        epoch: "{{ latest.epoch }}"
+{% endraw %}
+{% for attr in pws_attributes %}
+        {{ attr }}: "{{ '{{' }} state_attr(latest.entity, '{{ attr }}') {{ '}}' }}"
+{% endfor %}
+{% raw %}
     - name: "Most Recent Local PWS Weather (°F)"
       default_entity_id: sensor.most_recent_local_weather_fahrenheit
       unique_id: "most_recent_local_weather_fahrenheit"
@@ -45,10 +52,9 @@ sensor:
     value_template: {% raw %}"{{ value_json.observations[0].metric.temp }}"{% endraw +%}
     json_attributes_path: "$.observations[0]"
     json_attributes:
-      - epoch
-      - humidity
-      - uv
-      - solarRadiation
+{% for attr in pws_attributes %}
+      - {{ attr }}
+{% endfor %}
     unique_id: "weather_{{ station }}"
     name: "Weather Station {{ station }}"
     resource: "https://api.weather.com/v2/pws/observations/current?apiKey=e1f10a1e78da46f5b10a1e78da96f525&numericPrecision=decimal&format=json&units=m&stationId={{ station }}"
