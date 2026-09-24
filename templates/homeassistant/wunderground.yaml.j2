@@ -4,30 +4,34 @@
 template:
 {% raw %}
   - sensor:
+    # State-based template entities render `variables` once at setup and don't
+    # track the entities they reference, so the station selection lives in its
+    # own sensor instead.
+    - name: "Most Recent Local PWS Station"
+      default_entity_id: sensor.most_recent_local_weather_station
+      unique_id: "most_recent_local_weather_station"
+      state: >
+        {% set ns = namespace(list=[]) %}
+        {% for station in {% endraw %}{{ stations | tojson }}{% raw %} %}
+          {% set e = 'sensor.weather_station_' ~ station | lower %}
+          {% set ep = state_attr(e, 'epoch') %}
+          {% if states(e) | is_number and ep is not none %}
+            {% set ns.list = ns.list + [{'epoch': ep, 'entity': e}] %}
+          {% endif %}
+        {% endfor %}
+        {{ (ns.list | sort(attribute='epoch') | last).entity if ns.list else none }}
     - name: "Most Recent Local PWS Weather"
       default_entity_id: sensor.most_recent_local_weather
       unique_id: "most_recent_local_weather"
       unit_of_measurement: °C
       device_class: temperature
       state_class: measurement
-      variables:
-        latest: >
-          {% set ns = namespace(list=[]) %}
-          {% for station in {% endraw %}{{ stations | tojson }}{% raw %} %}
-            {% set e = 'sensor.weather_station_' ~ station | lower %}
-            {% set s = states(e) %}
-            {% set ep = state_attr(e, 'epoch') %}
-            {% if s | is_number and ep is not none %}
-              {% set ns.list = ns.list + [{'epoch': ep, 'state': s | float, 'entity': e}] %}
-            {% endif %}
-          {% endfor %}
-          {{ (ns.list | sort(attribute='epoch') | last) if ns.list else none }}
-      availability: "{{ latest is not none }}"
-      state: "{{ latest.state }}"
+      availability: "{{ states(states('sensor.most_recent_local_weather_station')) | is_number }}"
+      state: "{{ states(states('sensor.most_recent_local_weather_station')) }}"
       attributes:
 {% endraw %}
 {% for attr in pws_attributes %}
-        {{ attr }}: "{{ '{{' }} state_attr(latest.entity, '{{ attr }}') {{ '}}' }}"
+        {{ attr }}: "{{ '{{' }} state_attr(states('sensor.most_recent_local_weather_station'), '{{ attr }}') {{ '}}' }}"
 {% endfor %}
 {% raw %}
     - name: "Most Recent Local PWS Weather (°F)"
