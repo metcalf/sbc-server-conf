@@ -1,45 +1,263 @@
-# This is how I last partitioned the external backup drive.
-# Not encrypting the time machine partition because it can handle
-# encryption itself. Encrypting the other two but storing the keys
-# on the server for automatic mounting. This isn't super secure
-# but at least means someone grabbing the drive can't read it.
+# Setting up (or replacing) the external backup drive.
+#
+# Four partitions: WindowsBackup, TimeMachine, Misc, ExtData. Not encrypting
+# the WindowsBackup or TimeMachine partitions because their clients encrypt
+# the backups themselves (Kopia always encrypts its repository; Time Machine
+# has encryption turned on).
+# Misc is LUKS-encrypted with only a passphrase (kept in the password
+# manager); no key is stored on the server, so someone taking the whole
+# server still can't read it. It stays locked except while adding a new
+# Google Takeout (see step 6).
+#
+# ExtData is left unencrypted and holds VictoriaMetrics.
 
+# Run all of this in one screen session. It keeps $DISK and vm_baseline
+# through a dropped SSH connection, which matters most mid-cutover, and the
+# log keeps the output needed later (UUIDs, gzip and rsync errors).
+# Passphrases aren't echoed, so they don't end up in the log. Reattach with
+# `screen -r drive-swap`.
+screen -S drive-swap -L -Logfile ~/drive-swap.log
 sudo su -
 
-parted /dev/sda
+########################################################################
+# 1. Identify the drive
+########################################################################
+
+# Never type /dev/sdX by hand: with two drives attached the new one is
+# usually sdb, and sda is the drive holding live data. Pick the disk by
+# model and serial and use its stable by-id path for everything below.
+# lsblk and by-id show the USB bridge's serial, not the drive's, so confirm
+# the model and serial behind it with smartctl.
+lsblk -d -o NAME,SIZE,MODEL,SERIAL
+ls -l /dev/disk/by-id/ | grep usb
+DISK=/dev/disk/by-id/usb-...-0:0     # the whole disk, not a -partN link
+readlink -f "$DISK"                    # sanity check: expect the new sdX
+smartctl -d sat -i "$DISK" | grep -E 'Model|Serial'
+# $DISK doesn't survive a reboot or a new shell; set it again when resuming.
+
+########################################################################
+# 2. Check a new drive before using it
+########################################################################
+
+# Everything on the drive can be recreated (fresh backups, a new Google
+# Takeout, VictoriaMetrics from S3), so a full badblocks pass isn't worth a
+# day's wait. The SMART long test is a non-destructive surface read done by
+# the drive itself, and catches a dud before any setup effort goes into it.
+#
+# smartctl needs -d sat behind a USB bridge, and plain -H reports PASSED
+# even on a dying drive, so read the attributes (-a) instead.
+smartctl -d sat -a "$DISK" > ~andrew/smart_new_drive.txt
+smartctl -d sat -c "$DISK" | grep -A1 'Extended self-test'   # expected duration
+
+# The test runs inside the drive, but some USB bridges spin the drive down
+# when idle and abort it, so keep polling it until it finishes (Ctrl-C when
+# the status no longer says "in progress").
+smartctl -d sat -t long "$DISK"
+while sleep 600; do date; smartctl -d sat -c "$DISK" | grep -A1 'Self-test execution status'; done
+
+# Once it finishes: expect "Completed without error", and
+# Reallocated_Sector_Ct, Current_Pending_Sector and Offline_Uncorrectable
+# all still 0. Anything else means return the drive.
+smartctl -d sat -l selftest "$DISK"
+smartctl -d sat -A "$DISK" | grep -E 'Reallocated|Pending|Uncorrectable'
+
+# Watch for the bridge resetting under load, during the test and the copy.
+# Some USB-SATA bridges need UAS disabled (usb-storage.quirks=VID:PID:u in
+# cmdline.txt) to be stable.
+journalctl -k | grep -i 'usb.*reset'
+
+# For extra confidence in a drive before trusting it, a destructive
+# write+read-back pass takes about 16 hours for 4TB (-b 4096 keeps the block
+# count under badblocks' 32-bit limit):
+#   badblocks -b 4096 -c 1024 -wsv -t random "$DISK"
+
+########################################################################
+# 3. Partition and format
+########################################################################
+
+# ExtData gets about the last 500GiB. 3226GiB suits a 4TB (3726GiB) drive;
+# for another size, move it to a whole GiB about 500GiB before the end.
+# Don't use -500GiB: that counts from the exact end of the disk, which
+# usually isn't a whole number of MiB, so parted warns the start isn't
+# aligned.
+parted "$DISK"
 mklabel gpt
 mkpart WindowsBackup ext4 1MiB 500GiB
 mkpart TimeMachine ext4 500GiB 2000GiB
-mkpart Misc ext4 2000GiB 1200GiB
-mkpart ExtData ext4 3200GiB 100%
+mkpart Misc ext4 2000GiB 3226GiB
+mkpart ExtData ext4 3226GiB 100%
+align-check optimal 1
+align-check optimal 2
+align-check optimal 3
+align-check optimal 4
 print
 quit
 
-cryptsetup luksFormat /dev/sda1
-cryptsetup luksFormat /dev/sda3
+# Asks for the passphrase. It's the only key, so use the one in the
+# password manager.
+cryptsetup luksFormat "$DISK-part3"
 
-cryptsetup luksOpen /dev/sda1 ExternalWindowsBackup_crypt
-cryptsetup luksOpen /dev/sda3 ExternalMisc_crypt
+# Back up the LUKS header off the drive. If bad sectors hit a header, the
+# passphrase can't open the partition any more, but restoring the backup
+# (cryptsetup luksHeaderRestore "$DISK-part3" --header-backup-file ...) fixes
+# it. A backup still needs the passphrase, so it's safe to keep with it in the
+# password manager (about 16MB). It opens with the passphrase set at
+# backup time, so take a new one after any passphrase change. The date in the
+# name tells a stale backup from the current one.
+cryptsetup luksHeaderBackup "$DISK-part3" --header-backup-file ~andrew/Misc_$(date +%Y%m%d).luksheader
+chown andrew: ~andrew/*.luksheader
+# ...on the laptop: scp the .luksheader file off, e.g.:
+# scp andrew@home-sbc-server-local.itsshedtime.com:*.luksheader ~/Downloads
+# store it in the password manager, then delete it from the server:
+rm ~andrew/*.luksheader
 
-mkfs.ext4 -L WindowsBackup /dev/mapper/ExternalWindowsBackup_crypt/
-mkfs.ext4 -L Misc /dev/mapper/ExternalMisc_crypt
-mkfs.ext4 -L TimeMachine /dev/sda2
-mkfs.ext4 -L ExtData /dev/sda4
+# When replacing a drive, the old drive's mapping already uses the
+# ExternalMisc_crypt name, so use a temporary New* name until the cutover.
+cryptsetup open "$DISK-part3" NewMisc_crypt
 
-# Create secure directory for keys
-mkdir -p /etc/luks-keys
-chmod 700 /etc/luks-keys
+mkfs.ext4 -L WindowsBackup "$DISK-part1"
+mkfs.ext4 -L TimeMachine "$DISK-part2"
+mkfs.ext4 -L Misc /dev/mapper/NewMisc_crypt
+mkfs.ext4 -L ExtData "$DISK-part4"
 
-# Generate random keyfiles
-dd if=/dev/urandom of=/etc/luks-keys/external_windowsbackup.key bs=512 count=1
-dd if=/dev/urandom of=/etc/luks-keys/external_misc.key bs=512 count=1
+# Go read-only on the first filesystem error instead of carrying on. The
+# playbook enforces this too (ext4_remount_ro_devices), but setting it now
+# also covers the copy below.
+#
+# -m 0: no blocks reserved for root. That reserve (5% by default) is for
+# system disks; nothing writing here runs as root (Samba writes as the
+# backup users, VictoriaMetrics as its own user), so it would only waste
+# about 180GB across the drive.
+for dev in "$DISK-part1" "$DISK-part2" /dev/mapper/NewMisc_crypt "$DISK-part4"; do
+    tune2fs -e remount-ro -m 0 "$dev"
+done
 
-# Secure the keyfiles
-chmod 600 /etc/luks-keys/*.key
+# Samba serves the share/ directory inside each partition, so that an
+# unmounted partition refuses connections instead of taking backups onto the
+# SD card (see smb.conf).
+mkdir -p /mnt/new/{WindowsBackup,TimeMachine,Misc,ExtData}
+mount "$DISK-part1" /mnt/new/WindowsBackup
+mount "$DISK-part2" /mnt/new/TimeMachine
+mount /dev/mapper/NewMisc_crypt /mnt/new/Misc
+mount "$DISK-part4" /mnt/new/ExtData
+install -d -m 0755 -o windowsbackup -g windowsbackup /mnt/new/WindowsBackup/share
+install -d -m 0755 -o timemachinebackup -g timemachinebackup /mnt/new/TimeMachine/share
+install -d -m 0755 -o miscbackup -g miscbackup /mnt/new/Misc/share
 
-# Add keyfiles to LUKS headers
-cryptsetup luksAddKey /dev/sda1 /etc/luks-keys/external_windowsbackup.key
-cryptsetup luksAddKey /dev/sda3 /etc/luks-keys/external_misc.key
+########################################################################
+# 4. Replacing a drive: copy data across
+########################################################################
 
-# Read block IDs for copying into playbook.yml vars
-blkid /dev/sda1 /dev/sda2 /dev/sda3 /dev/sda4
+# Copy files, not the block device. dd/ddrescue would carry over any
+# filesystem damage and duplicate the UUIDs; rsync turns an unreadable
+# sector into an I/O error naming the file.
+#
+# WindowsBackup and TimeMachine are not copied: start fresh backups on the
+# new drive (nothing verifies a sparsebundle end to end) and keep the old
+# drive on a shelf for the history.
+
+# Misc can be copied while the old drive is live. The old drive has no
+# share/ directory, so its whole root goes into the new share/.
+rsync -aHAX --info=progress2 --exclude=/lost+found /mnt/ExternalMisc/ /mnt/new/Misc/share/
+
+# VictoriaMetrics baseline: samples per 7 days ending at fixed past times.
+# These counts don't change once a window is in the past, so capture them
+# before the cutover and diff them after. Adjust the dates to cover what's
+# stored (data currently starts around 2026-06-30).
+vm_baseline() {
+    for d in 2026-07-07 2026-07-14 2026-07-21 2026-07-28 2026-08-04 2026-08-11 \
+             2026-08-18 2026-08-25 2026-09-01 2026-09-08 2026-09-15 2026-09-22; do
+        printf '%s ' "$d"
+        curl -s --data-urlencode 'query=sum(count_over_time({__name__=~".+"}[7d]))' \
+            --data-urlencode "time=${d}T00:00:00Z" http://127.0.0.1:8428/api/v1/query |
+            python3 -c 'import json,sys; r=json.load(sys.stdin)["data"]["result"]; print(r[0]["value"][1] if r else "none")'
+    done
+}
+vm_baseline > ~andrew/vm_baseline_before.txt
+# Saved so it can be reloaded after the cutover reboot
+declare -f vm_baseline > ~andrew/vm_baseline.sh
+
+########################################################################
+# 5. Replacing a drive: cutover (Samba and metrics down ~30 minutes)
+########################################################################
+
+# The playbook expects the new drive's layout (share/ directories, no
+# keyfiles), so from here on don't run it against the old drive.
+
+# Avoid cron.daily (06:25), which runs the VictoriaMetrics backup.
+systemctl stop smbd victoriametrics
+
+# Leave the old drive's lost+found, *.corrupt-*, *.post-fsck-* and
+# vm_quarantine behind.
+rsync -aHAX --info=progress2 /mnt/ExtData/victoriametrics /mnt/new/ExtData/
+
+# Release both drives. Lock the old Misc partition through systemd, not
+# cryptsetup close: otherwise systemd still thinks it's unlocked, and
+# starting the new mount later waits forever for a device instead of asking
+# for the passphrase. Stopping the cryptsetup unit unmounts it first.
+umount /mnt/ExternalWindowsBackup /mnt/ExternalTimeMachine /mnt/ExtData
+systemctl stop systemd-cryptsetup@ExternalMisc_crypt.service
+umount /mnt/new/WindowsBackup /mnt/new/TimeMachine /mnt/new/Misc /mnt/new/ExtData
+cryptsetup close NewMisc_crypt
+rmdir /mnt/new/* /mnt/new
+
+# UUIDs for playbook.yml, ready to paste over the uuid lines in
+# usb_partitions (ext4_remount_ro_devices is worked out from those). Misc
+# uses its LUKS UUID, which blkid reads from the partition itself, locked or
+# not.
+n=1
+for name in ExternalWindowsBackup ExternalTimeMachine ExternalMisc ExtData; do
+    printf '      - name: %s\n        uuid: "%s"\n' "$name" "$(blkid -s UUID -o value "$DISK-part$n")"
+    n=$((n + 1))
+done
+
+# On the laptop: put the new UUIDs in playbook.yml (usb_partitions), then
+# run the playbook. It rewrites crypttab and fstab, mounts WindowsBackup,
+# TimeMachine and ExtData, starts VictoriaMetrics and deletes the old
+# keyfiles.
+#   ansible-playbook -i hosts playbook.yml
+
+# Pick up the new crypttab and fstab, then unlock Misc the way it's done
+# when adding a Takeout (step 6).
+systemctl daemon-reload
+systemctl start mnt-ExternalMisc.mount
+systemctl start smbd
+
+findmnt /mnt/ExternalWindowsBackup /mnt/ExternalTimeMachine /mnt/ExternalMisc /mnt/ExtData
+ls -ld /mnt/*/share
+vm_baseline | diff ~andrew/vm_baseline_before.txt -
+systemctl stop systemd-cryptsetup@ExternalMisc_crypt.service
+
+# Prove it all comes back after a reboot, without the old drive attached.
+poweroff
+# ...unplug the old drive and power on. The reboot ended the screen session,
+# so start a new one, set $DISK again and reload vm_baseline:
+screen -S drive-swap -L -Logfile ~/drive-swap-after-reboot.log
+sudo su -
+DISK=/dev/disk/by-id/usb-...-0:0
+. ~andrew/vm_baseline.sh
+vm_baseline | diff ~andrew/vm_baseline_before.txt -
+# WindowsBackup, TimeMachine and ExtData should be mounted, and Misc locked.
+for dev in "$DISK-part1" "$DISK-part2" "$DISK-part4"; do
+    dumpe2fs -h "$dev" 2>/dev/null | grep 'Errors behavior'
+done
+/usr/local/bin/check_victoriametrics && echo healthy
+/etc/cron.daily/z-backup_victoriametrics
+journalctl -k -b | grep -iE 'usb.*reset|I/O error|EXT4-fs error'
+
+# Then on the clients: remove and re-add the Time Machine destination on the
+# Mac (with encryption turned on), and point Kopia on Windows at the
+# windows-backup share, so each starts a new backup. With Misc locked, the Mac should fail to connect
+# to the misc share.
+
+########################################################################
+# 6. Day to day: unlocking and locking Misc
+########################################################################
+
+# Misc stays locked except while adding a new Google Takeout. Starting the
+# mount unit unlocks the partition first, asking for the passphrase in the
+# terminal. Stopping the cryptsetup unit unmounts the partition and then
+# locks it. The other partitions mount at boot and need nothing.
+sudo systemctl start mnt-ExternalMisc.mount
+#   ...copy the Takeout into the misc share...
+sudo systemctl stop systemd-cryptsetup@ExternalMisc_crypt.service

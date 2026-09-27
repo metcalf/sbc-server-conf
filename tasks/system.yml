@@ -30,7 +30,12 @@
     - reboot
 
 - name: Read ext4 error behavior
-  command: "dumpe2fs -h {{ item }}"
+  command:
+    cmd: "dumpe2fs -h {{ item }}"
+    # Skips the read when the device is missing, as a locked encrypted
+    # partition's /dev/mapper device is. The stdout then has no
+    # "Errors behavior" line, which skips the tune2fs below too.
+    removes: "{{ item }}"
   register: ext4_superblock
   changed_when: false
   check_mode: false
@@ -40,7 +45,9 @@
 # gate it on the superblock read above to keep this idempotent.
 - name: Fail read-only on ext4 errors instead of continuing
   command: "tune2fs -e remount-ro {{ item.item }}"
-  when: item.stdout is not search('Errors behavior:\s+Remount read-only')
+  when:
+    - item.stdout is search('Errors behavior:')
+    - item.stdout is not search('Errors behavior:\s+Remount read-only')
   loop: "{{ ext4_superblock.results }}"
   loop_control:
     label: "{{ item.item }}"

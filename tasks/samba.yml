@@ -17,15 +17,27 @@
     - timemachinebackup
     - miscbackup
 
+# No keyfile (password none) and noauto: boot doesn't stop to ask for a
+# passphrase, and the partition stays locked until unlocked by hand with
+# `systemctl start mnt-<name>.mount`, which asks for the passphrase.
 - name: Configure crypttab for encrypted partitions
   crypttab:
     name: "{{ item.name }}_crypt"
     backing_device: "UUID={{ item.uuid }}"
-    password: "{{ item.keyfile }}"
-    opts: luks,nofail
+    password: none
+    opts: luks,noauto
     state: present
   loop: "{{ usb_partitions }}"
-  when: item.keyfile is defined
+  when: item.encrypted | default(false)
+
+# The crypttab task above only ever adds entries, so a partition that stops
+# being encrypted would otherwise keep a stale one.
+- name: Remove crypttab entries for unencrypted partitions
+  crypttab:
+    name: "{{ item.name }}_crypt"
+    state: absent
+  loop: "{{ usb_partitions }}"
+  when: not (item.encrypted | default(false))
 
 - name: Create mount point directories
   file:
@@ -39,17 +51,25 @@
 # errors=remount-ro: go read-only on the first filesystem error rather than
 # ext4's default of logging it and continuing to write. See ext4_remount_ro_devices
 # in playbook.yml, which sets the same behaviour in the superblock.
-- name: Mount encrypted USB partitions and add to fstab
+#
+# Encrypted partitions are only added to fstab (state: present), since they
+# can't be mounted until someone enters the passphrase. x-systemd.requires
+# makes starting the mount unit unlock the partition first, and stopping the
+# cryptsetup unit unmount it. No device timeout, so there's no deadline for
+# typing the passphrase.
+- name: Add encrypted USB partitions to fstab
   mount:
     path: "/mnt/{{ item.name }}"
     src: "/dev/mapper/{{ item.name }}_crypt"
     fstype: ext4
-    opts: "defaults,nofail,errors=remount-ro,x-systemd.device-timeout=30,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service"
+    # boot: false is what adds noauto; listing it in opts too duplicates it
+    opts: "defaults,errors=remount-ro,x-systemd.requires=systemd-cryptsetup@{{ item.name }}_crypt.service"
+    boot: false
     dump: 0
     passno: 2
-    state: mounted
+    state: present
   loop: "{{ usb_partitions }}"
-  when: item.keyfile is defined
+  when: item.encrypted | default(false)
 
 - name: Mount unencrypted USB partitions and add to fstab
   mount:
@@ -61,7 +81,7 @@
     passno: 2
     state: mounted
   loop: "{{ usb_partitions }}"
-  when: item.keyfile is not defined
+  when: not (item.encrypted | default(false))
 
 - name: Allow Samba application profile from specific networks
   ufw:
@@ -70,6 +90,14 @@
     src: "{{ item }}"
   with_items:
     - 192.168.0.0/22
+
+# Nothing uses these since the drive's LUKS headers only have passphrase
+# slots. Deleting them doesn't reliably erase them from the SD card, but they
+# only opened the previous drive.
+- name: Remove LUKS keyfiles
+  file:
+    path: /etc/luks-keys
+    state: absent
 
 - name: Place smb.conf
   copy:
