@@ -1,0 +1,158 @@
+#!/bin/bash
+set -euo pipefail
+
+# Checks the external USB drive's health and reports to healthchecks.io.
+#
+#   check_drive_health                    run the checks (daily, from cron)
+#   check_drive_health self-test TYPE     start a SMART short or long self-test
+#   check_drive_health accept             accept the current SMART counts
+#
+# SMART counts that only ever go up (reallocated sectors and the like) fail
+# the check as soon as they're above zero. Once a rise has been looked into,
+# `accept` records the current values for this drive, so only a further rise
+# fails it; otherwise the check would stay failed and hide the next one.
+
+# Redirect output to syslog when not run in the terminal
+if [ ! -t 1 ]; then
+    exec 1> >(logger -t drive_health) 2>&1
+fi
+
+if [ "$EUID" -ne 0 ]; then
+    echo "run as root"
+    exit 1
+fi
+
+# From usb_partitions in playbook.yml. Unencrypted partitions should always
+# be mounted. Encrypted ones are locked most of the time, so they're only
+# checked while unlocked.
+REQUIRED_MOUNTS=({% for p in usb_partitions if not (p.encrypted | default(false)) %}/mnt/{{ p.name }}{{ ' ' if not loop.last }}{% endfor %})
+OPTIONAL_MOUNTS=({% for p in usb_partitions if p.encrypted | default(false) %}/mnt/{{ p.name }}{{ ' ' if not loop.last }}{% endfor %})
+# Any unencrypted partition on the drive, to find the disk itself
+PARTITION=/dev/disk/by-uuid/{{ (usb_partitions | rejectattr('encrypted', 'true') | first).uuid }}
+{# Nothing below is templated. raw keeps Jinja from reading bash's ${#...}
+   as the start of a comment. #}
+{% raw %}
+
+# Numeric attribute IDs we watch for drive health
+# 5=reallocated sectors, 187=uncorrectable errors reported to the host,
+# 197=sectors pending reallocation, 198=sectors found unreadable offline,
+# 199=transfer checksum errors (cable or USB bridge rather than the disk).
+# These were the ones that tracked the previous drive's decline.
+WATCHED_ATTRIBUTES="5 187 197 198 199"
+ACCEPTED_DIR=/var/local/drive_health_accepted
+
+# smartctl needs -d sat behind the USB bridge
+smart() {
+    # smartctl's exit status is a bitmask of drive problems, which this
+    # script reads from the output instead
+    smartctl -d sat "$@" || true
+}
+
+mode=${1:-check}
+case "$mode" in
+    check|self-test|accept) ;;
+    *) echo "usage: $0 [self-test short|long | accept]" >&2; exit 1 ;;
+esac
+
+if [ "$mode" = check ]; then
+    # Report the exit status to healthchecks.io. A non-zero status alerts
+    # right away; if this host dies entirely the missing ping trips the
+    # grace period. Set before looking for the disk, so a missing drive
+    # alerts too.
+    trap 'exit_code=$?; /var/local/drive_health_heartbeat /$exit_code; exit $exit_code' EXIT
+fi
+
+if [ ! -e "$PARTITION" ]; then
+    echo "$PARTITION not found; is the drive connected?" >&2
+    exit 2
+fi
+disk=/dev/$(lsblk -no PKNAME "$PARTITION")
+serial=$(smart -i "$disk" | awk -F': *' '/^Serial Number/ { print $2 }')
+if [ -z "$serial" ]; then
+    echo "can't read the serial number of $disk" >&2
+    exit 3
+fi
+accepted_file="$ACCEPTED_DIR/$serial"
+
+# Prints "id name raw_value" for each watched attribute
+watched_attributes() {
+    smart -A "$disk" | awk -v ids="$WATCHED_ATTRIBUTES" '
+        BEGIN { split(ids, list, " "); for (i in list) watched[list[i]] = 1 }
+        $1 in watched { print $1, $2, $10 }'
+}
+
+case "$mode" in
+    self-test)
+        case "${2:-}" in
+            short|long) smart -t "$2" "$disk" ;;
+            *) echo "usage: $0 self-test short|long" >&2; exit 1 ;;
+        esac
+        exit 0
+        ;;
+    accept)
+        mkdir -p "$ACCEPTED_DIR"
+        watched_attributes | awk '{ print $1, $3 }' > "$accepted_file"
+        echo "accepted for $serial:"
+        cat "$accepted_file"
+        exit 0
+        ;;
+esac
+
+problems=()
+
+# Mounted, still read-write (errors=remount-ro flips it on the first
+# filesystem error), and no errors recorded in the superblock
+check_filesystem() {
+    local mount=$1 source options superblock
+    if ! source=$(findmnt -rn --mountpoint "$mount" -o SOURCE); then
+        return 1
+    fi
+    options=$(findmnt -rn --mountpoint "$mount" -o OPTIONS)
+    case ",$options," in
+        *,ro,*) problems+=("$mount is mounted read-only") ;;
+    esac
+    superblock=$(dumpe2fs -h "$source" 2>/dev/null)
+    # dumpe2fs only prints the error count once there has been an error
+    if grep -q '^FS Error count:' <<< "$superblock"; then
+        problems+=("$mount has recorded filesystem errors: $(grep -E '^(FS Error count|First error time|Last error time):' <<< "$superblock" | tr -s ' ' | paste -sd ';')")
+    fi
+    if grep -q '^Filesystem state:.*error' <<< "$superblock"; then
+        problems+=("$mount $(grep '^Filesystem state:' <<< "$superblock" | tr -s ' ')")
+    fi
+}
+
+for mount in "${REQUIRED_MOUNTS[@]}"; do
+    check_filesystem "$mount" || problems+=("$mount is not mounted")
+done
+for mount in "${OPTIONAL_MOUNTS[@]}"; do
+    check_filesystem "$mount" || true
+done
+
+if ! smart -H "$disk" | grep -q 'self-assessment test result: PASSED'; then
+    problems+=("SMART overall health is not PASSED")
+fi
+
+while read -r id name value; do
+    allowed=0
+    if [ -f "$accepted_file" ]; then
+        allowed=$(awk -v id="$id" '$1 == id { print $2 }' "$accepted_file")
+        allowed=${allowed:-0}
+    fi
+    if [ "$value" -gt "$allowed" ]; then
+        problems+=("$name is $value (accepted: $allowed)")
+    fi
+done < <(watched_attributes)
+
+# The most recent self-test. A test still running doesn't appear here yet.
+latest_test=$(smart -l selftest "$disk" | grep '^# *1 ' || true)
+if [ -n "$latest_test" ] && ! grep -q 'Completed without error' <<< "$latest_test"; then
+    problems+=("latest SMART self-test: $(tr -s ' ' <<< "$latest_test")")
+fi
+
+if [ "${#problems[@]}" -gt 0 ]; then
+    echo "$disk ($serial):" >&2
+    printf '  %s\n' "${problems[@]}" >&2
+    exit 4
+fi
+echo "$disk ($serial) healthy"
+{% endraw %}

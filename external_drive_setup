@@ -261,3 +261,27 @@ journalctl -k -b | grep -iE 'usb.*reset|I/O error|EXT4-fs error'
 sudo systemctl start mnt-ExternalMisc.mount
 #   ...copy the Takeout into the misc share...
 sudo systemctl stop systemd-cryptsetup@ExternalMisc_crypt.service
+
+########################################################################
+# 7. When the drive health check fails
+########################################################################
+
+# check_drive_health runs daily and reports to healthchecks.io, and cron
+# runs a short SMART self-test weekly and a long one monthly (times in
+# files/drive_health.cron). Run it by hand to see what it found; from cron
+# its output goes to syslog.
+sudo check_drive_health
+journalctl -t drive_health
+
+# A rise in a SMART count (reallocated or pending sectors, and so on) keeps
+# the check failing until it's accepted. Look at the trend first: a one-off
+# is worth watching, a steady climb means planning a replacement (this
+# runbook). Accepting records the current counts for this drive, so only a
+# further rise fails the check again.
+sudo smartctl -d sat -A /dev/sdX    # the disk check_drive_health names
+sudo check_drive_health accept
+
+# Filesystem errors or a read-only mount: stop what writes to it, unmount,
+# and fsck. Check the kernel log for I/O errors first, which point at the
+# drive rather than the filesystem.
+journalctl -k | grep -iE 'I/O error|EXT4-fs error|usb.*reset'

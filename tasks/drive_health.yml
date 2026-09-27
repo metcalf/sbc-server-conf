@@ -1,0 +1,38 @@
+---
+- name: Install smartmontools
+  apt:
+    name: smartmontools
+    state: present
+
+# check_drive_health replaces smartd. smartd only reports problems, by mail
+# to root, which goes nowhere here, so a healthy drive and a dead monitor
+# look the same. Its default config also doesn't pass -d sat for the USB
+# bridge.
+- name: Disable smartd
+  systemd_service:
+    name: smartd
+    enabled: false
+    state: stopped
+
+- name: Create drive health heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /var/local/drive_health_heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/784651c4-b680-456c-94ac-52d324ff7b3c
+    heartbeat_status_arg: $1
+
+- name: Install drive health check script
+  template:
+    src: templates/check_drive_health.j2
+    dest: /usr/local/bin/check_drive_health
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Install drive health cron
+  copy:
+    src: files/drive_health.cron
+    dest: /etc/cron.d/drive_health
+    mode: "0600"

@@ -1,0 +1,11 @@
+# Times are UTC. In Los Angeles that's 7 hours earlier (8 in winter).
+#
+# Daily health check, after a monthly long self-test has finished, so any
+# alert arrives in the morning (9am PDT)
+0 16 * * * root /usr/local/bin/check_drive_health
+# Weekly short SMART self-test (about 2 minutes), clear of the long test's
+# window (the drive won't start one while the other is running)
+0 15 * * 0 root /usr/local/bin/check_drive_health self-test short
+# Monthly long SMART self-test (about 8 hours): overnight (11:30pm PDT),
+# just after cron.daily (06:25) starts the VictoriaMetrics backup
+30 6 1 * * root /usr/local/bin/check_drive_health self-test long
