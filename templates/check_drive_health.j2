@@ -22,6 +22,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# cron's PATH is just /usr/bin:/bin, and smartctl and dumpe2fs are in sbin
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 # From usb_partitions in playbook.yml. Unencrypted partitions should always
 # be mounted. Encrypted ones are locked most of the time, so they're only
 # checked while unlocked.

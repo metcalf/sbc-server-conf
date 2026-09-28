@@ -8,9 +8,12 @@
 # to root, which goes nowhere here, so a healthy drive and a dead monitor
 # look the same. Its default config also doesn't pass -d sat for the USB
 # bridge.
+#
+# The unit is smartmontools; smartd is only an alias, which disabling it
+# removes, so the alias can't be used to find it on the next run.
 - name: Disable smartd
   systemd_service:
-    name: smartd
+    name: smartmontools
     enabled: false
     state: stopped
 
