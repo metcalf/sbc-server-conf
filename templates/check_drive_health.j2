@@ -148,8 +148,31 @@ done < <(watched_attributes)
 
 # The most recent self-test. A test still running doesn't appear here yet.
 latest_test=$(smart -l selftest "$disk" | grep '^# *1 ' || true)
-if [ -n "$latest_test" ] && ! grep -q 'Completed without error' <<< "$latest_test"; then
+if [ -z "$latest_test" ]; then
+    problems+=("no SMART self-test has been logged")
+elif ! grep -q 'Completed without error' <<< "$latest_test"; then
     problems+=("latest SMART self-test: $(tr -s ' ' <<< "$latest_test")")
+fi
+
+# Self-tests start from cron without reporting anywhere, so a broken
+# schedule would otherwise leave this check passing on an old result. The
+# short test runs weekly; allow a day's slack on top. Ages are in
+# power-on hours, which is how the self-test log records when a test ran.
+MAX_SELF_TEST_AGE_HOURS=$((8 * 24))
+if [ -n "$latest_test" ]; then
+    # LifeTime(hours) is the field after Remaining (e.g. "00%"); the status
+    # before it is a variable number of words
+    test_hours=$(awk '{ for (i = 1; i < NF; i++) if ($i ~ /^[0-9]+%$/) { print $(i + 1); exit } }' <<< "$latest_test")
+    power_on_hours=$(smart -A "$disk" | awk '$1 == 9 { print $10 + 0 }')
+    if [ -z "$test_hours" ] || [ -z "$power_on_hours" ]; then
+        problems+=("can't work out the age of the latest SMART self-test")
+    else
+        # The log's LifeTime is 16 bits, so it wraps every 65536 hours
+        age=$(( (power_on_hours - test_hours + 65536) % 65536 ))
+        if [ "$age" -gt "$MAX_SELF_TEST_AGE_HOURS" ]; then
+            problems+=("latest SMART self-test is $age power-on hours old; are the scheduled tests running?")
+        fi
+    fi
 fi
 
 if [ "${#problems[@]}" -gt 0 ]; then
