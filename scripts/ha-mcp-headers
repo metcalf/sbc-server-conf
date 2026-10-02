@@ -1,0 +1,24 @@
+#!/bin/bash
+# Prints the Cloudflare Access service token header for ha-mcp as JSON, for
+# the headersHelper in .mcp.json. Cloud sessions don't run headersHelper;
+# there the header comes from an API credential on the cloud environment.
+#
+# Reads the token from the macOS keychain. To store it:
+#   security add-generic-password -s ha-mcp.itsshedtime.com -a cf-access-client-id -w '<id>'
+#   security add-generic-password -s ha-mcp.itsshedtime.com -a cf-access-client-secret -w '<secret>'
+set -euo pipefail
+
+read_key() {
+    security find-generic-password -s ha-mcp.itsshedtime.com -a "$1" -w
+}
+
+CLIENT_ID="$(read_key cf-access-client-id)" \
+CLIENT_SECRET="$(read_key cf-access-client-secret)" \
+python3 -c '
+import json, os
+token = {
+    "cf-access-client-id": os.environ["CLIENT_ID"],
+    "cf-access-client-secret": os.environ["CLIENT_SECRET"],
+}
+print(json.dumps({"X-HA-MCP-Access": json.dumps(token)}))
+'

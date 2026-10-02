@@ -172,8 +172,8 @@ can read HA state, logs and traces and make UI-style config changes. It listens
 on loopback only and is published at `https://ha-mcp.itsshedtime.com/mcp`
 through nginx. Three layers sit in front of it, none of them HA:
 
-1. Cloudflare Access requires a service token (`CF-Access-Client-Id` /
-   `CF-Access-Client-Secret` headers).
+1. Cloudflare Access requires a service token, sent as one
+   `X-HA-MCP-Access` header. nginx strips it before proxying.
 2. nginx only accepts Cloudflare's Authenticated Origin Pulls client cert.
 3. Only `/mcp` is proxied; everything else on the hostname is a 404.
 
@@ -188,19 +188,22 @@ Setup:
    pointing at the house, matching `homeassistant.itsshedtime.com`.
 3. In Cloudflare Zero Trust, create a service token, then an Access
    application for `ha-mcp.itsshedtime.com` with a single **Service Auth**
-   policy that includes only that token.
+   policy that includes only that token. Set the app's
+   `read_service_tokens_from_header` to `X-HA-MCP-Access` (API only, no
+   dashboard setting) so the token travels in one header as
+   `{"cf-access-client-id": "<id>", "cf-access-client-secret": "<secret>"}`.
 4. Enable Authenticated Origin Pulls for the hostname:
    `./scripts/enable-cloudflare-origin-pulls.sh ha-mcp.itsshedtime.com`
 5. Deploy with the playbook.
 
-Clients use the committed `.mcp.json`, which reads the service token from
-`CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`:
+Clients use the committed `.mcp.json`:
 
-* **Locally**, export both before starting Claude Code.
-* **In a Claude Code cloud session**, set `CF_ACCESS_CLIENT_ID` as an
-  environment variable and add the secret as an API credential (custom header
-  `CF-Access-Client-Secret`, no prefix, allowed website
-  `ha-mcp.itsshedtime.com`). The credential is attached by Anthropic's proxy
-  and never enters the session. Use a dedicated environment for this repo.
+* **Locally**, its `headersHelper` (`scripts/ha-mcp-headers`) builds the
+  header from the macOS keychain; the script has the commands to store it.
+* **In a Claude Code cloud session**, `headersHelper` doesn't run. Add an API
+  credential to a cloud environment dedicated to this repo: allowed website
+  `ha-mcp.itsshedtime.com`, custom header `X-HA-MCP-Access` with no prefix,
+  and the JSON above as the value. Anthropic's proxy attaches it after the
+  request leaves the session, so the token never enters it.
 
 To cut off access, delete the Cloudflare service token or revoke the HA token.
