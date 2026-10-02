@@ -38,6 +38,7 @@
     - home-sbc-server-local.itsshedtime.com
     - homeassistant.itsshedtime.com
     - homeapps.itsshedtime.com
+    - ha-mcp.itsshedtime.com
 
 - name: Certbot renewal hook to reload nginx
   copy:
@@ -88,6 +89,7 @@
     - home-sbc-server-local.itsshedtime.com
     - homeassistant
     - homeapps
+    - ha-mcp
 
 - name: Create site directories
   file:

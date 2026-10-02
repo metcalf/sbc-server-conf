@@ -80,3 +80,43 @@ services:
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+  ha-mcp:
+    # MCP server that lets Claude read state and make UI-style config changes.
+    # It binds to loopback only; the outside world reaches it through nginx
+    # (files/sites/ha-mcp) behind Cloudflare Access, so neither HA nor ha-mcp
+    # is relied on to authenticate callers. Pinned because upstream publishes
+    # a build on every push to master.
+    image: ghcr.io/homeassistant-ai/ha-mcp:8.6.0
+    container_name: ha-mcp
+    command: ["ha-mcp-web"]
+    # Host networking so it can reach HA on 127.0.0.1:8123, which ufw doesn't
+    # expose to the docker bridge.
+    network_mode: host
+    environment:
+      - MCP_HOST=127.0.0.1
+      - MCP_PORT=9584
+      - HA_MCP_DISABLE_SETTINGS_UI=true
+      - HA_MCP_DISABLE_UPDATE_CHECK=true
+      # An allowlist, since that's the only filter ha-mcp offers. Left out on
+      # purpose: hacs, updates, backup, code (free-form API escape hatch),
+      # resources (dashboard JS runs in every browser session), camera,
+      # security_policy, bug_report and dev. addons, filesystem, yaml_config
+      # and dashboard_screenshot need Supervisor or HA-side components we
+      # don't run. YAML config is owned by this repo, not edited in place.
+      - >-
+        ENABLED_TOOL_MODULES=tools_areas,tools_assist_pipeline,tools_blueprints,
+        tools_calendar,tools_categories,tools_config_automations,
+        tools_config_dashboards,tools_config_helpers,tools_config_scenes,
+        tools_config_scripts,tools_energy,tools_entities,tools_groups,
+        tools_history,tools_integrations,tools_labels,tools_logs,
+        tools_registry,tools_search,tools_service,tools_services,tools_system,
+        tools_themes,tools_todo,tools_traces,tools_utility,
+        tools_voice_assistant,tools_zones
+    env_file:
+      # HA URL and a long-lived token dedicated to ha-mcp, so it can be
+      # revoked without touching hass_token. 0600 root, outside /config for
+      # the same reason as matter-hub's.
+      - /var/local/ha-mcp/ha-mcp.env
+    security_opt:
+      - no-new-privileges
+    restart: unless-stopped

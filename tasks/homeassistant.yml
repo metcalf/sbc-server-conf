@@ -88,6 +88,23 @@
     owner: root
     group: root
 
+- name: Create ha-mcp config directory
+  file:
+    path: /var/local/ha-mcp
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+
+# Outside /config for the same reason as matter-hub's env file
+- name: Template ha-mcp env file
+  template:
+    src: templates/homeassistant/ha-mcp.env.j2
+    dest: /var/local/ha-mcp/ha-mcp.env
+    mode: '0600'
+    owner: root
+    group: root
+
 - name: Place compose file
   copy:
     src: files/homeassistant/compose.yml

@@ -164,3 +164,43 @@ TODO:
 * Paging when services crash
 * Write or find a UDP logging service
 * Ping alerting
+
+## Home Assistant MCP server (for Claude)
+
+`ha-mcp` runs as a container (see `files/homeassistant/compose.yml`) so Claude
+can read HA state, logs and traces and make UI-style config changes. It listens
+on loopback only and is published at `https://ha-mcp.itsshedtime.com/mcp`
+through nginx. Three layers sit in front of it, none of them HA:
+
+1. Cloudflare Access requires a service token (`CF-Access-Client-Id` /
+   `CF-Access-Client-Secret` headers).
+2. nginx only accepts Cloudflare's Authenticated Origin Pulls client cert.
+3. Only `/mcp` is proxied; everything else on the hostname is a 404.
+
+HA tokens can't be scoped, so the token is admin-equivalent. Riskier tool
+modules are left out with `ENABLED_TOOL_MODULES` in the compose file.
+
+Setup:
+
+1. In HA, create a long-lived access token for ha-mcp (profile > Security) and
+   add it to `secrets.yml` as `ha_mcp_hass_token`.
+2. In Cloudflare, add a proxied DNS record for `ha-mcp.itsshedtime.com`
+   pointing at the house, matching `homeassistant.itsshedtime.com`.
+3. In Cloudflare Zero Trust, create a service token, then an Access
+   application for `ha-mcp.itsshedtime.com` with a single **Service Auth**
+   policy that includes only that token.
+4. Enable Authenticated Origin Pulls for the hostname:
+   `./scripts/enable-cloudflare-origin-pulls.sh ha-mcp.itsshedtime.com`
+5. Deploy with the playbook.
+
+Clients use the committed `.mcp.json`, which reads the service token from
+`CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`:
+
+* **Locally**, export both before starting Claude Code.
+* **In a Claude Code cloud session**, set `CF_ACCESS_CLIENT_ID` as an
+  environment variable and add the secret as an API credential (custom header
+  `CF-Access-Client-Secret`, no prefix, allowed website
+  `ha-mcp.itsshedtime.com`). The credential is attached by Anthropic's proxy
+  and never enters the session. Use a dedicated environment for this repo.
+
+To cut off access, delete the Cloudflare service token or revoke the HA token.
