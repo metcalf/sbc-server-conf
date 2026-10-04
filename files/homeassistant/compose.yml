@@ -82,19 +82,27 @@ services:
     restart: unless-stopped
   ha-mcp:
     # MCP server that lets Claude read state and make UI-style config changes.
-    # It binds to loopback only; the outside world reaches it through nginx
-    # (files/sites/ha-mcp) behind Cloudflare Access, so neither HA nor ha-mcp
-    # is relied on to authenticate callers. :latest only moves on stable
+    # The outside world reaches it only through nginx (files/sites/ha-mcp)
+    # behind Cloudflare Access, so neither HA nor ha-mcp is relied on to
+    # authenticate callers. :latest only moves on stable
     # releases (dev builds go to :dev), so it updates with HA on a pull.
     # Modules added upstream stay off until listed below.
     image: ghcr.io/homeassistant-ai/ha-mcp:latest
     container_name: ha-mcp
     command: ["ha-mcp-web"]
-    # Host networking so it can reach HA on 127.0.0.1:8123, which ufw doesn't
-    # expose to the docker bridge.
-    network_mode: host
+    # Unlike the other containers, not on host networking: ha-mcp holds an
+    # admin token, so it shouldn't also see the host's loopback-only services
+    # or the internet. On an internal network, Docker drops everything that
+    # isn't to or from the subnet; what's left is the host via the gateway
+    # address, where ufw adds HA to the ports already open to anyone, all of
+    # which authenticate. Published ports don't work on
+    # internal networks, so nginx proxies to the fixed address instead.
+    networks:
+      ha-mcp:
+        ipv4_address: 172.31.250.10
     environment:
-      - MCP_HOST=127.0.0.1
+      - HOMEASSISTANT_URL=http://172.31.250.1:8123
+      - MCP_HOST=0.0.0.0
       - MCP_PORT=9584
       - HA_MCP_DISABLE_SETTINGS_UI=true
       - HA_MCP_DISABLE_UPDATE_CHECK=true
@@ -115,10 +123,18 @@ services:
         tools_themes,tools_todo,tools_traces,tools_utility,
         tools_voice_assistant,tools_zones
     env_file:
-      # HA URL and a long-lived token dedicated to ha-mcp, so it can be
+      # A long-lived token dedicated to ha-mcp, so it can be
       # revoked without touching hass_token. 0600 root, outside /config for
       # the same reason as matter-hub's.
       - /var/local/ha-mcp/ha-mcp.env
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+
+networks:
+  ha-mcp:
+    name: ha-mcp
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24

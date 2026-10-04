@@ -171,6 +171,17 @@
     heartbeat_url: https://hc-ping.com/4c37fdea-e447-4963-bd7c-28abb2269fcb
     heartbeat_status_arg: $1
 
+# ha-mcp's network is internal, so the gateway address is the only host
+# address it can reach, and only on ports ufw allows. This adds HA.
+- name: Allow ha-mcp to reach Home Assistant
+  community.general.ufw:
+    rule: allow
+    port: "8123"
+    proto: tcp
+    src: 172.31.250.0/24
+    dest: 172.31.250.1
+    comment: ha-mcp to HA
+
 - name: Allow Sonos push connections
   community.general.ufw:
     rule: allow

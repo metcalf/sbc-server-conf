@@ -168,9 +168,11 @@ TODO:
 ## Home Assistant MCP server (for Claude)
 
 `ha-mcp` runs as a container (see `files/homeassistant/compose.yml`) so Claude
-can read HA state, logs and traces and make UI-style config changes. It listens
-on loopback only and is published at `https://ha-mcp.itsshedtime.com/mcp`
-through nginx. Three layers sit in front of it, none of them HA:
+can read HA state, logs and traces and make UI-style config changes. It runs
+on an internal Docker network (no internet or host loopback services; on the
+host it reaches HA plus ports ufw already opens to anyone) and is published at
+`https://ha-mcp.itsshedtime.com/mcp` through nginx. Three layers sit in front
+of it, none of them HA:
 
 1. Cloudflare Access requires a service token, sent as one
    `X-HA-MCP-Access` header. nginx strips it before proxying.
