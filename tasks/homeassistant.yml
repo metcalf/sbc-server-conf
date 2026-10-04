@@ -24,7 +24,9 @@
       - docker-ce
       - docker-compose-plugin
       - python3-docker
-    state: latest
+    # Not latest: upgrading Docker restarts every container, HA included, so
+    # it happens during maintenance (see README) rather than on any deploy.
+    state: present
     update_cache: "{{ dockerrepo.changed }}"
 
 - name: Create homeassistant group
