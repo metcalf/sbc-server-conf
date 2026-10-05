@@ -20,5 +20,5 @@ token = {
     "cf-access-client-id": os.environ["CLIENT_ID"],
     "cf-access-client-secret": os.environ["CLIENT_SECRET"],
 }
-print(json.dumps({"X-HA-MCP-Access": json.dumps(token)}))
+print(json.dumps({"Authorization": json.dumps(token)}))
 '

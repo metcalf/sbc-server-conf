@@ -174,8 +174,8 @@ host it reaches HA plus ports ufw already opens to anyone) and is published at
 `https://ha-mcp.itsshedtime.com/mcp` through nginx. Three layers sit in front
 of it, none of them HA:
 
-1. Cloudflare Access requires a service token, sent as one
-   `X-HA-MCP-Access` header. nginx strips it before proxying.
+1. Cloudflare Access requires a service token, sent as one `Authorization`
+   header. nginx strips it before proxying.
 2. nginx only accepts Cloudflare's Authenticated Origin Pulls client cert.
 3. Only `/mcp` is proxied; everything else on the hostname is a 404.
 
@@ -191,8 +191,8 @@ Setup:
 3. In Cloudflare Zero Trust, create a service token, then an Access
    application for `ha-mcp.itsshedtime.com` with a single **Service Auth**
    policy that includes only that token. Set the app's
-   `read_service_tokens_from_header` to `X-HA-MCP-Access` (API only, no
-   dashboard setting) so the token travels in one header as
+   `read_service_tokens_from_header` to `Authorization` (API only, and the
+   only value Cloudflare accepts) so the token travels in one header as
    `{"cf-access-client-id": "<id>", "cf-access-client-secret": "<secret>"}`.
 4. Enable Authenticated Origin Pulls for the hostname:
    `./scripts/enable-cloudflare-origin-pulls.sh ha-mcp.itsshedtime.com`
@@ -204,7 +204,7 @@ Clients use the committed `.mcp.json`:
   header from the macOS keychain; the script has the commands to store it.
 * **In a Claude Code cloud session**, `headersHelper` doesn't run. Add an API
   credential to a cloud environment dedicated to this repo: allowed website
-  `ha-mcp.itsshedtime.com`, custom header `X-HA-MCP-Access` with no prefix,
+  `ha-mcp.itsshedtime.com`, custom header `Authorization` with no prefix,
   and the JSON above as the value. Anthropic's proxy attaches it after the
   request leaves the session, so the token never enters it.
 
