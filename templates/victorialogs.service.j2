@@ -1,6 +1,7 @@
 [Unit]
 Description=VictoriaLogs log database
 After=network.target
+RequiresMountsFor={{ victorialogs_data_path }}
 
 [Service]
 Type=simple
@@ -10,14 +11,19 @@ Group=victorialogs
 # over HTTP from systemd-journal-upload, and syslog from rsyslog, which
 # forwards what it receives from other devices.
 #
+# Retention is one setting for everything, so the journal is kept as long as
+# the device logs, which are the ones worth a year. The device logs are about
+# 4MB a day before compression and the journal less; the size cap is only
+# there in case something floods the log.
+#
 # Stream fields are what VictoriaLogs groups log lines by, so they leave out
 # anything that changes from one run of a program to the next (the pid, or a
 # unit name like session-123.scope).
 ExecStart=/usr/local/bin/victoria-logs-prod \
   -storageDataPath={{ victorialogs_data_path }} \
   -httpListenAddr=127.0.0.1:9428 \
-  -retentionPeriod=8w \
-  -retention.maxDiskSpaceUsageBytes=5GiB \
+  -retentionPeriod=1y \
+  -retention.maxDiskSpaceUsageBytes=20GiB \
   -memory.allowedPercent=10 \
   -journald.streamFields=SYSLOG_IDENTIFIER \
   -syslog.listenAddr.udp=127.0.0.1:5514 \

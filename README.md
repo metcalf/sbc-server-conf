@@ -160,8 +160,8 @@ Notes:
 
 ## Logs
 
-VictoriaLogs (`tasks/victorialogs.yml`) keeps 8 weeks of logs, capped at 5GiB,
-on the SD card. It receives:
+VictoriaLogs (`tasks/victorialogs.yml`) keeps a year of logs, capped at 20GiB,
+on ExtData. It receives:
 
 * the journal, shipped by `systemd-journal-upload`: systemd units, the kernel,
   anything a cron job sends through `logger`, and the containers, whose log
