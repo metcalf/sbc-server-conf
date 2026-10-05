@@ -43,6 +43,10 @@ UNITS=(
     victorialogs
     victoriametrics
 )
+# Units whose restarts aren't counted. journal-upload exits whenever it can't
+# reach VictoriaLogs and is restarted until it can, so its restarts say
+# VictoriaLogs was down, not that journal-upload is crashing.
+RESTARTS_IGNORED=" systemd-journal-upload "
 COMPOSE_FILE=/var/local/homeassistant/compose.yml
 RESTART_LIMIT=3
 RESTART_WINDOW=3600
@@ -86,7 +90,9 @@ for unit in "${UNITS[@]}"; do
     if [ "$state" != active ]; then
         problems[unit:$unit]="$unit is $state"
     fi
-    record_restarts "unit:$unit" "$(systemctl show -p NRestarts --value "$unit")"
+    if [[ $RESTARTS_IGNORED != *" $unit "* ]]; then
+        record_restarts "unit:$unit" "$(systemctl show -p NRestarts --value "$unit")"
+    fi
 done
 
 # Covers what the list above can't: timers and one-off jobs (certbot, apt),
