@@ -7,7 +7,7 @@ This document describes how to set up client certificate authentication for serv
 This setup uses two layers of mTLS authentication:
 
 **Layer 1: End Users → Cloudflare (Cloudflare-Managed mTLS)**
-1. Cloudflare Access generates and manages client certificates for your users
+1. Cloudflare issues and manages client certificates for your users
 2. Users download certificates from Cloudflare and install on their devices
 3. Cloudflare validates certificates when users connect
 4. Only authenticated users can proceed
@@ -21,23 +21,19 @@ This provides end-to-end authentication with Cloudflare managing user certificat
 
 ## Initial Setup
 
-### 1. Configure Cloudflare Access Application with mTLS
+### 1. Require a Client Certificate with an mTLS Rule
 
-Set up the Cloudflare Access application which will generate and validate client certificates:
+Cloudflare validates client certificates for the hostnames listed as mTLS hosts, and a WAF rule blocks requests that don't present a valid one:
 
-1. Go to [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/)
-2. Navigate to **Access** > **Applications**
-3. Click **Add an application** > **Self-hosted**
-4. Configure the application:
-   - **Application name**: Home Assistant
-   - **Session duration**: 24 hours (or your preference)
-   - **Application domain**: `homeassistant.itsshedtime.com`
-5. Add a policy:
-   - **Policy name**: mTLS Required
-   - **Action**: Allow
-   - **Rule type**: Include
-   - **Selector**: mTLS Certificate (Cloudflare will manage these)
-6. Save the application
+1. Go to the Cloudflare Dashboard > SSL/TLS > Client Certificates
+2. Under **Hosts**, add each protected hostname
+3. Go to Security > WAF > Custom rules and create a rule that blocks requests to those hostnames without a verified certificate. The rule in use is:
+   ```
+   (not cf.tls_client_auth.cert_verified and http.host in {"homeassistant.itsshedtime.com" "home-logs.itsshedtime.com"})
+   ```
+   with the action **Block**
+
+Both the hosts list and the rule name each hostname, so a hostname that is missing from either is not protected.
 
 ### 2. Initialize Your Certificate Authority (for Authenticated Origin Pulls)
 
@@ -302,7 +298,7 @@ Note: This only affects Authenticated Origin Pulls. End-user certificates are ma
 
 4. **Delete Certificate Files After Installation**: Once installed on a device, delete certificate and key files from any temporary locations.
 
-5. **Monitor Certificate Expiration**: Keep track of expiration dates in Cloudflare Zero Trust Dashboard and renew proactively.
+5. **Monitor Certificate Expiration**: Keep track of expiration dates under SSL/TLS > Client Certificates and renew proactively.
 
 6. **Device-Specific Certificates**: Issue a separate certificate for each device in Cloudflare. This allows you to revoke access for a single device without affecting others.
 
@@ -316,8 +312,8 @@ Note: This only affects Authenticated Origin Pulls. End-user certificates are ma
 
 **Solutions**:
 - Verify the certificate is installed on your device (see installation instructions above)
-- Check that the certificate hasn't expired (check in Cloudflare Zero Trust Dashboard)
-- Verify the Access policy is configured correctly and includes the mTLS rule
+- Check that the certificate hasn't expired (Cloudflare Dashboard > SSL/TLS > Client Certificates)
+- Verify the hostname is in the mTLS hosts list and in the WAF rule
 - Check that the certificate wasn't revoked
 - Try a different browser (some browsers handle client certificates differently)
 - On mobile, use Safari (iOS) or Chrome (Android) as they have better client cert support
@@ -346,8 +342,8 @@ Note: This only affects Authenticated Origin Pulls. End-user certificates are ma
 
 Check that everything is configured in Cloudflare:
 
-1. **Access Application**: Zero Trust Dashboard > Access > Applications (verify homeassistant.itsshedtime.com exists)
-2. **mTLS Certificates**: Zero Trust Dashboard > Access > Service Auth > mTLS Certificates (verify certificates are issued)
+1. **mTLS hosts and certificates**: Cloudflare Dashboard > SSL/TLS > Client Certificates (verify the hostname is listed and certificates are issued)
+2. **WAF rule**: Cloudflare Dashboard > Security > WAF > Custom rules (verify the rule names the hostname and blocks unverified requests)
 3. **Authenticated Origin Pulls**: Cloudflare Dashboard > SSL/TLS > Origin Server (verify enabled)
 4. **Origin Certificate**: Cloudflare Dashboard > SSL/TLS > Origin Server > Origin Certificates (verify uploaded)
 
@@ -355,10 +351,9 @@ Check that everything is configured in Cloudflare:
 
 To protect other services with the same setup:
 
-1. Create a new Access Application in Cloudflare:
-   - Go to Zero Trust Dashboard > Access > Applications
-   - Add an application for the new hostname (e.g., `myapp.itsshedtime.com`)
-   - Use the same mTLS policy
+1. Require a client certificate for the new hostname (e.g., `myapp.itsshedtime.com`), before its DNS record exists:
+   - Add it under SSL/TLS > Client Certificates > Hosts
+   - Add it to the WAF rule that blocks requests without a verified certificate
 
 2. Upload an origin certificate for the new hostname:
    ```bash
@@ -386,7 +381,7 @@ To protect other services with the same setup:
 
 **End-User Certificates (Cloudflare-Managed):**
 - Managed entirely by Cloudflare
-- Downloaded from Cloudflare Zero Trust Dashboard
+- Issued under SSL/TLS > Client Certificates
 - Validity: Up to 10 years (configured when creating)
 
 ### File Locations
@@ -409,6 +404,6 @@ To protect other services with the same setup:
 - `/etc/nginx/sites-enabled/homeassistant` - Home Assistant nginx config with client cert validation
 
 **Cloudflare:**
-- End-user certificates managed in Zero Trust Dashboard
+- End-user certificates managed under SSL/TLS > Client Certificates
 - Origin client certificate uploaded for Authenticated Origin Pulls
-- Access policies configured for protected applications
+- mTLS hosts and the WAF rule that requires a client certificate
