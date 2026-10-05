@@ -31,6 +31,11 @@ template:
       state: "{{ is_state('binary_sensor.1f_doors_and_windows', 'on') }}"
       delay_on:
             minutes: 5
+    - unique_id: "den_door_left_open"
+      name: "Den door left open"
+      state: "{{ is_state('binary_sensor.den_door', 'on') }}"
+      delay_on:
+            minutes: 5
     - unique_id: "2f_left_open"
       name: "2F left open"
       state: "{{ is_state('binary_sensor.2f_doors_and_windows', 'on') }}"
@@ -54,6 +59,89 @@ template:
         {{ is_state('binary_sensor.2f_left_open', 'on')
           and is_state_attr('climate.hvac_ctrl_2f', 'hvac_action', 'heating') }}
       device_class: problem
+    # Only worth nagging about open doors on a day that will get hot. Other
+    # "hot day" logic around the house uses its own thresholds.
+    - name: "Heat gain alerts active"
+      default_entity_id: binary_sensor.heat_gain_alerts_active
+      unique_id: heat_gain_alerts_active
+      state: >
+        {{ states('sensor.outdoor_temperature') | float(0) > 72
+           and state_attr('sensor.weather_forecast_today', 'temperature')
+               | float(0) >= 78 }}
+      device_class: heat
+    # Outdoor heat coming in through an open door. While the day is still
+    # warming up we want to know as soon as outside is warmer than the room;
+    # once it's cooling off a few degrees of difference is fine. Each door is
+    # compared against the room it lets into. delay_off stops a temperature
+    # difference hovering around the margin from re-notifying.
+    - name: "Den door left open on a hot day"
+      default_entity_id: binary_sensor.den_door_open_with_heat_gain
+      unique_id: den_door_open_heat_gain
+      state: >
+        {{ is_state('binary_sensor.heat_gain_alerts_active', 'on')
+           and is_state('binary_sensor.den_door_left_open', 'on')
+           and states('sensor.outdoor_temperature') | float(-999)
+               > states('sensor.den_temperature') | float(999)
+                 + states('sensor.heat_gain_alert_margin') | float(999) }}
+      delay_off:
+        minutes: 15
+      device_class: problem
+    - name: "2F door or window left open on a hot day"
+      default_entity_id: binary_sensor.2f_open_with_heat_gain
+      unique_id: 2f_open_heat_gain
+      state: >
+        {{ is_state('binary_sensor.heat_gain_alerts_active', 'on')
+           and is_state('binary_sensor.2f_left_open', 'on')
+           and states('sensor.outdoor_temperature') | float(-999)
+               > states('sensor.2f_hvac_control_indoor_temperature') | float(999)
+                 + states('sensor.heat_gain_alert_margin') | float(999) }}
+      delay_off:
+        minutes: 15
+      device_class: problem
+    - name: "PBR door left open on a hot day"
+      default_entity_id: binary_sensor.pbr_door_open_with_heat_gain
+      unique_id: pbr_door_open_heat_gain
+      state: >
+        {{ is_state('binary_sensor.heat_gain_alerts_active', 'on')
+           and is_state('binary_sensor.pbr_door_left_open', 'on')
+           and states('sensor.outdoor_temperature') | float(-999)
+               > states('sensor.pbr_hvac_control_indoor_temperature') | float(999)
+                 + states('sensor.heat_gain_alert_margin') | float(999) }}
+      delay_off:
+        minutes: 15
+      device_class: problem
+  - sensor:
+    # How much warmer outside has to be than a room before an open door is
+    # worth a notification: 1°F while it's still heating up, 4°F once it has
+    # come 1°F off today's high. All in °F, the unit the inputs are shown in.
+    - name: "Heat gain alert margin"
+      default_entity_id: sensor.heat_gain_alert_margin
+      unique_id: heat_gain_alert_margin
+      unit_of_measurement: °F
+      state: >
+        {{ 1 if states('sensor.outdoor_temperature') | float(0)
+                >= states('sensor.outdoor_high_today') | float(0) - 1
+           else 4 }}
+  # Resets at 05:00 rather than midnight so the evening's warmth doesn't
+  # count as the high for a morning that starts out cooler.
+  - trigger:
+      - trigger: state
+        entity_id: sensor.outdoor_temperature
+      - trigger: time
+        at: "05:00:00"
+        id: reset
+    sensor:
+      - name: "Outdoor high today"
+        default_entity_id: sensor.outdoor_high_today
+        unique_id: outdoor_high_today
+        unit_of_measurement: °F
+        device_class: temperature
+        state: >
+          {% set t = states('sensor.outdoor_temperature') %}
+          {% if not t | is_number %}{{ this.state }}
+          {% elif trigger.id == 'reset' or not this.state | is_number %}{{ t }}
+          {% else %}{{ [t | float, this.state | float] | max }}
+          {% endif %}
 
 automation:
   - alias: "Notify on heating loss"
@@ -64,6 +152,23 @@ automation:
           - binary_sensor.1f_open_with_heating_loss
           - binary_sensor.2f_open_with_heating_loss
           - binary_sensor.pbr_door_open_with_heating_loss
+        from: "off"
+        to: "on"
+    action:
+      - service: notify.mobile_app_andrews_iphone
+        data:
+          message: "{{ trigger.to_state.attributes.friendly_name }}"
+      - service: notify.mobile_app_morgan_s_iphone
+        data:
+          message: "{{ trigger.to_state.attributes.friendly_name }}"
+  - alias: "Notify on heat gain"
+    id: notify_heat_gain
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.den_door_open_with_heat_gain
+          - binary_sensor.2f_open_with_heat_gain
+          - binary_sensor.pbr_door_open_with_heat_gain
         from: "off"
         to: "on"
     action:
