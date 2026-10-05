@@ -258,6 +258,8 @@ journalctl -k -b | grep -iE 'usb.*reset|I/O error|EXT4-fs error'
 # mount unit unlocks the partition first, asking for the passphrase in the
 # terminal. Stopping the cryptsetup unit unmounts the partition and then
 # locks it. The other partitions mount at boot and need nothing.
+# scripts/google-takeout-backup.sh (run on the Mac) does all of this for a
+# new Takeout in ~/Downloads.
 sudo systemctl start mnt-ExternalMisc.mount
 #   ...copy the Takeout into the misc share...
 sudo systemctl stop systemd-cryptsetup@ExternalMisc_crypt.service
