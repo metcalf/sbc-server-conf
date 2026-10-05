@@ -158,13 +158,6 @@ Notes:
 * This is unrelated to the `matter-server` container, which is the opposite
   direction (lets HA control Matter devices).
 
-TODO:
-* Install loggly, pagerduty
-* Manage loggly agent
-* Paging when services crash
-* Write or find a UDP logging service
-* Ping alerting
-
 ## Home Assistant MCP server (for Claude)
 
 `ha-mcp` runs as a container (see `files/homeassistant/compose.yml`) so Claude
