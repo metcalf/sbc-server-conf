@@ -98,11 +98,14 @@ template:
       delay_off:
         minutes: 15
       device_class: problem
+    # With the PBR A/C cooling, warm air coming in is worth knowing about
+    # whatever the forecast, so the hot-day gate doesn't apply.
     - name: "PBR door left open on a hot day"
       default_entity_id: binary_sensor.pbr_door_open_with_heat_gain
       unique_id: pbr_door_open_heat_gain
       state: >
-        {{ is_state('binary_sensor.heat_gain_alerts_active', 'on')
+        {{ (is_state('binary_sensor.heat_gain_alerts_active', 'on')
+            or is_state_attr('climate.hvac_ctrl_pbr', 'hvac_action', 'cooling'))
            and is_state('binary_sensor.pbr_door_left_open', 'on')
            and states('sensor.outdoor_temperature') | float(-999)
                > states('sensor.pbr_hvac_control_indoor_temperature') | float(999)
