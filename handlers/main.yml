@@ -51,3 +51,13 @@
   service:
     name: victoriametrics
     state: restarted
+
+- name: restart victorialogs
+  service:
+    name: victorialogs
+    state: restarted
+
+- name: restart journal-upload
+  service:
+    name: systemd-journal-upload
+    state: restarted

@@ -1,0 +1,126 @@
+---
+- name: Create victorialogs group
+  group:
+    name: victorialogs
+    state: present
+    system: true
+
+- name: Create victorialogs user
+  user:
+    name: victorialogs
+    group: victorialogs
+    system: true
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: false
+
+- name: Create victorialogs data directory
+  file:
+    path: "{{ victorialogs_data_path }}"
+    state: directory
+    owner: victorialogs
+    group: victorialogs
+    mode: '0750'
+
+- name: Check installed VictoriaLogs version
+  ansible.builtin.command: /usr/local/bin/victoria-logs-prod -version
+  register: vl_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Download and install VictoriaLogs binary
+  when: victorialogs_version not in (vl_version_check.stdout | default(''))
+  block:
+    - name: Download VictoriaLogs tarball
+      vars:
+        tarball: "victoria-logs-linux-arm64-{{ victorialogs_version }}.tar.gz"
+      ansible.builtin.get_url:
+        url: "https://github.com/VictoriaMetrics/VictoriaLogs/releases/download/{{ victorialogs_version }}/{{ tarball }}"
+        dest: /tmp/victoria-logs.tar.gz
+        mode: '0644'
+
+    - name: Extract VictoriaLogs binary
+      ansible.builtin.unarchive:
+        src: /tmp/victoria-logs.tar.gz
+        dest: /usr/local/bin/
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      notify: restart victorialogs
+
+    - name: Remove tarball
+      ansible.builtin.file:
+        path: /tmp/victoria-logs.tar.gz
+        state: absent
+
+- name: Install VictoriaLogs systemd unit
+  template:
+    src: templates/victorialogs.service.j2
+    dest: /etc/systemd/system/victorialogs.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart victorialogs
+
+- name: Enable and start VictoriaLogs
+  systemd_service:
+    name: victorialogs
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# systemd-journal-upload ships the journal to VictoriaLogs: every systemd
+# unit, cron job output sent through logger, the kernel, and the containers
+# (their log driver is journald, see files/homeassistant/compose.yml).
+- name: Install systemd-journal-upload
+  apt:
+    name: systemd-journal-remote
+    state: present
+
+- name: Create journal-upload config directory
+  file:
+    path: /etc/systemd/journal-upload.conf.d
+    state: directory
+    mode: '0755'
+
+# journal-upload adds /upload to this itself
+- name: Point journal-upload at VictoriaLogs
+  copy:
+    content: |
+      [Upload]
+      URL=http://127.0.0.1:9428/insert/journald
+    dest: /etc/systemd/journal-upload.conf.d/victorialogs.conf
+    mode: '0644'
+  notify: restart journal-upload
+
+- name: Create journal-upload unit drop-in directory
+  file:
+    path: /etc/systemd/system/systemd-journal-upload.service.d
+    state: directory
+    mode: '0755'
+
+# journal-upload exits when it can't reach the server, and this systemd's
+# unit doesn't restart it, so one VictoriaLogs restart would otherwise stop
+# the uploads for good.
+- name: Restart journal-upload when it exits
+  copy:
+    content: |
+      [Unit]
+      After=victorialogs.service
+
+      [Service]
+      Restart=always
+      RestartSec=30
+    dest: /etc/systemd/system/systemd-journal-upload.service.d/restart.conf
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart journal-upload
+
+- name: Enable and start journal-upload
+  systemd_service:
+    name: systemd-journal-upload
+    enabled: true
+    state: started
+    daemon_reload: true

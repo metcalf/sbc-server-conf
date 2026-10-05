@@ -8,6 +8,11 @@
     nonroot_login_user: andrew
     nodenv_root: /home/{{ nonroot_login_user }}/.nodenv
     victoriametrics_version: v1.140.0
+    victorialogs_version: v1.53.0
+    # On the SD card rather than with VictoriaMetrics on ExtData, so the logs
+    # are still there to read when the external drive is the thing that broke.
+    # VictoriaLogs caps itself at 5GiB (see the unit file).
+    victorialogs_data_path: /var/lib/victorialogs
     # Encrypted partitions have no key stored on the server, so they stay
     # locked until unlocked by hand with the LUKS passphrase (see
     # external_drive_setup). The uuid of an encrypted partition is the LUKS
@@ -59,6 +64,8 @@
     - import_tasks: tasks/webserver.yml
     - import_tasks: tasks/mosquitto.yml
     - import_tasks: tasks/victoriametrics.yml
+    - import_tasks: tasks/victorialogs.yml
     - import_tasks: tasks/homeassistant.yml
+    - import_tasks: tasks/service_check.yml
   handlers:
     - import_tasks: handlers/main.yml

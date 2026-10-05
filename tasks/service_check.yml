@@ -1,0 +1,25 @@
+---
+# Sends the problems it found as the ping's body, hence heartbeat_send_stdin
+- name: Create service check heartbeat script
+  template:
+    src: templates/heartbeat.sh.j2
+    dest: /var/local/service_check_heartbeat
+    mode: "0755"
+  vars:
+    heartbeat_url: https://hc-ping.com/ee0f832f-7a78-4994-b3a1-155dea0b7bc1
+    heartbeat_status_arg: $1
+    heartbeat_send_stdin: true
+
+- name: Install service check script
+  copy:
+    src: files/check_services
+    dest: /usr/local/bin/check_services
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Install service check cron
+  copy:
+    src: files/service_check.cron
+    dest: /etc/cron.d/service_check
+    mode: "0600"

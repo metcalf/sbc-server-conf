@@ -1,2 +1,2 @@
 #!/bin/sh
-/usr/bin/curl -fsS -m 10 --retry 5 -o /dev/null "{{heartbeat_url}}{{heartbeat_status_arg | default('') }}"
+/usr/bin/curl -fsS -m 10 --retry 5 -o /dev/null{{ ' --data-binary @-' if heartbeat_send_stdin | default(false) }} "{{heartbeat_url}}{{heartbeat_status_arg | default('') }}"

@@ -1,4 +1,14 @@
 ---
+# Container logs go to journald, which systemd-journal-upload ships to
+# VictoriaLogs (tasks/victorialogs.yml). `docker logs` still works, but only
+# as far back as the journal goes: it is kept in RAM, so it is short and
+# doesn't survive a reboot. The tag makes the container name the journal's
+# SYSLOG_IDENTIFIER instead of the container ID.
+x-logging: &logging
+  driver: journald
+  options:
+    tag: "{{.Name}}"
+
 services:
   homeassistant:
     # NOTE: We use this instead of the ghcr.io version since it runs unprivileged by default
@@ -21,6 +31,7 @@ services:
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+    logging: *logging
   tesla_ble_mqtt:
     image: iainbullock/tesla_ble_mqtt:latest
     container_name: tesla_ble_mqtt
@@ -34,10 +45,12 @@ services:
     env_file:
       - /var/local/tesla-ble-mqtt/mqtt.env
     restart: unless-stopped
+    logging: *logging
   matter-server:
     image: ghcr.io/home-assistant-libs/python-matter-server:stable
     container_name: matter-server
     restart: unless-stopped
+    logging: *logging
     # Required for mDNS to work correctly
     network_mode: host
     user: "8123:8123"
@@ -80,6 +93,7 @@ services:
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+    logging: *logging
   ha-mcp:
     # MCP server that lets Claude read state and make UI-style config changes.
     # The outside world reaches it only through nginx (files/sites/ha-mcp)
@@ -130,6 +144,7 @@ services:
     security_opt:
       - no-new-privileges
     restart: unless-stopped
+    logging: *logging
 
 networks:
   ha-mcp:

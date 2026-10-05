@@ -33,7 +33,7 @@ Home Assistant (homeassistant.itsshedtime.com) uses two-layer mTLS authenticatio
 
 To set up:
 
-1. Configure Cloudflare Access application with mTLS (generates user certificates)
+1. Require a client certificate for the hostname with a Cloudflare mTLS rule
 
 2. Initialize your CA for Authenticated Origin Pulls:
    ```bash
@@ -157,6 +157,51 @@ Notes:
   safety check into the action block before exposing it.
 * This is unrelated to the `matter-server` container, which is the opposite
   direction (lets HA control Matter devices).
+
+## Logs
+
+VictoriaLogs (`tasks/victorialogs.yml`) keeps 8 weeks of logs, capped at 5GiB,
+on the SD card. It receives:
+
+* the journal, shipped by `systemd-journal-upload`: systemd units, the kernel,
+  anything a cron job sends through `logger`, and the containers, whose log
+  driver is journald
+* syslog from other devices, which rsyslog forwards as well as writing to
+  `/var/log/remote` for the S3 archive
+
+Not in there: services that log to their own files (nginx, mosquitto,
+ical-filter-proxy, samba).
+
+The search UI is at `https://home-logs.itsshedtime.com` and at
+`http://127.0.0.1:9428/select/vmui/` on the server. Useful queries:
+
+* `SYSLOG_IDENTIFIER:homeassistant error` -- a container or program by name
+* `_SYSTEMD_UNIT:nginx.service` -- a systemd unit
+* `hostname:crawlspace-th16` -- a device logging over syslog
+* `SYSLOG_IDENTIFIER:service_check` -- what the service check found
+
+VictoriaLogs has no login, so Cloudflare's client certificate check is all
+that protects the hostname. Set it up in this order, so the hostname never
+resolves without the check in front of it:
+
+1. In Cloudflare, add `home-logs.itsshedtime.com` to the mTLS hosts and to
+   the WAF rule that blocks requests without a verified client certificate,
+   as for Home Assistant (see [CLIENT-CERTS.md](CLIENT-CERTS.md)).
+2. Deploy with the playbook. certbot uses a DNS challenge, so this works
+   before the hostname exists.
+3. Add a proxied DNS record for `home-logs.itsshedtime.com`, matching
+   `homeassistant.itsshedtime.com`.
+4. Enable Authenticated Origin Pulls for the hostname:
+   `./scripts/enable-cloudflare-origin-pulls.sh home-logs.itsshedtime.com`
+
+## Service check
+
+`check_services` runs every 5 minutes and fails its healthchecks.io check when
+a systemd unit or container stays down, keeps restarting (3 times in an hour),
+or any unit is in the failed state. A single crash that recovers is not
+reported. The alert's body lists the problems. A new always-on systemd service
+needs adding to `UNITS` in `files/check_services`; containers are picked up
+from the compose file.
 
 ## Home Assistant MCP server (for Claude)
 

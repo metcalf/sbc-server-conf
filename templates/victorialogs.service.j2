@@ -1,0 +1,32 @@
+[Unit]
+Description=VictoriaLogs log database
+After=network.target
+
+[Service]
+Type=simple
+User=victorialogs
+Group=victorialogs
+# Everything listens on loopback only. Logs arrive two ways: journald entries
+# over HTTP from systemd-journal-upload, and syslog from rsyslog, which
+# forwards what it receives from other devices.
+#
+# Stream fields are what VictoriaLogs groups log lines by, so they leave out
+# anything that changes from one run of a program to the next (the pid, or a
+# unit name like session-123.scope).
+ExecStart=/usr/local/bin/victoria-logs-prod \
+  -storageDataPath={{ victorialogs_data_path }} \
+  -httpListenAddr=127.0.0.1:9428 \
+  -retentionPeriod=8w \
+  -retention.maxDiskSpaceUsageBytes=5GiB \
+  -memory.allowedPercent=10 \
+  -journald.streamFields=SYSLOG_IDENTIFIER \
+  -syslog.listenAddr.udp=127.0.0.1:5514 \
+  '-syslog.streamFields.udp=["hostname","app_name"]'
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+ProtectSystem=full
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,156 @@
+#!/bin/bash
+set -euo pipefail
+
+# Checks that the services this server runs are up, and reports to
+# healthchecks.io.
+#
+# Everything here restarts itself, so a single crash isn't worth hearing
+# about. What gets reported is a service that stays down or keeps crashing:
+#
+#   - a unit or container that isn't running
+#   - a unit or container that restarted itself RESTART_LIMIT times within
+#     RESTART_WINDOW
+#   - any systemd unit at all in the failed state
+#
+# and each of those only once it has shown up on two runs in a row (cron runs
+# this every 5 minutes), which is what lets a restart in progress go by.
+#
+# The problems are sent to healthchecks.io as the body of the ping, so the
+# alert says what's wrong.
+
+# Redirect output to syslog when not run in the terminal
+if [ ! -t 1 ]; then
+    exec 1> >(logger -t service_check) 2>&1
+fi
+
+if [ "$EUID" -ne 0 ]; then
+    echo "run as root"
+    exit 1
+fi
+
+# Units that should always be running. Home Assistant and the other
+# containers come from the compose file instead. Cron is left out: without
+# it this doesn't run, and the missing ping is the alert.
+UNITS=(
+    docker
+    ical-filter-proxy
+    mosquitto
+    nginx
+    rsyslog
+    smbd
+    ssh
+    systemd-journal-upload
+    victorialogs
+    victoriametrics
+)
+COMPOSE_FILE=/var/local/homeassistant/compose.yml
+RESTART_LIMIT=3
+RESTART_WINDOW=3600
+STATE_DIR=/var/local/service_check
+
+# Report the exit status to healthchecks.io. A non-zero status alerts right
+# away; if this host dies entirely the missing ping trips the grace period.
+report=""
+trap 'exit_code=$?; printf "%s" "$report" | /var/local/service_check_heartbeat /$exit_code; exit $exit_code' EXIT
+
+mkdir -p "$STATE_DIR"
+touch "$STATE_DIR/last_problems" "$STATE_DIR/restart_events"
+now=$(date +%s)
+
+# Keyed by something that stays the same from run to run, so this run's
+# problems can be matched against the last run's
+declare -A problems=()
+
+# The restart counter of each unit and container, as of the last run and now
+declare -A last_restarts=() restarts=()
+if [ -f "$STATE_DIR/restart_counts" ]; then
+    while read -r name count; do
+        last_restarts[$name]=$count
+    done < "$STATE_DIR/restart_counts"
+fi
+
+# Notes each restart since the last run in restart_events. A counter that
+# went down was reset (a reboot, a manual restart, a recreated container)
+# and one that wasn't there last time is new, neither of which is a crash.
+record_restarts() {
+    local name=$1 count=${2:-0}
+    local last=${last_restarts[$name]:-$count}
+    restarts[$name]=$count
+    for ((i = last; i < count; i++)); do
+        echo "$now $name" >> "$STATE_DIR/restart_events"
+    done
+}
+
+for unit in "${UNITS[@]}"; do
+    state=$(systemctl is-active "$unit" || true)
+    if [ "$state" != active ]; then
+        problems[unit:$unit]="$unit is $state"
+    fi
+    record_restarts "unit:$unit" "$(systemctl show -p NRestarts --value "$unit")"
+done
+
+# Covers what the list above can't: timers and one-off jobs (certbot, apt),
+# and anything that gave up restarting
+while read -r unit _; do
+    # Already reported above as not running
+    if [ -z "$unit" ] || [ -n "${problems[unit:${unit%.service}]:-}" ]; then
+        continue
+    fi
+    problems[failed:$unit]="$unit has failed (systemctl reset-failed $unit once it's dealt with)"
+done < <(systemctl list-units --state=failed --plain --no-legend)
+
+# Every service in the compose file should have a running container
+if services=$(docker compose -f "$COMPOSE_FILE" config --services) \
+    && containers=$(docker compose -f "$COMPOSE_FILE" ps --all --quiet); then
+    declare -A container_states=()
+    if [ -n "$containers" ]; then
+        while read -r service state count; do
+            container_states[$service]=$state
+            record_restarts "container:$service" "$count"
+        done < <(
+            # shellcheck disable=SC2086 # one argument per container ID
+            docker inspect --format \
+                '{{index .Config.Labels "com.docker.compose.service"}} {{.State.Status}} {{.RestartCount}}' \
+                $containers
+        )
+    fi
+    for service in $services; do
+        state=${container_states[$service]:-missing}
+        if [ "$state" != running ]; then
+            problems[container:$service]="container $service is $state"
+        fi
+    done
+else
+    problems[containers]="can't list the containers; docker's error is in syslog under service_check"
+fi
+
+for name in "${!restarts[@]}"; do
+    echo "$name ${restarts[$name]}"
+done > "$STATE_DIR/restart_counts"
+
+# Forget restarts older than the window, then count what's left
+awk -v cutoff=$((now - RESTART_WINDOW)) '$1 >= cutoff' "$STATE_DIR/restart_events" > "$STATE_DIR/restart_events.new"
+mv "$STATE_DIR/restart_events.new" "$STATE_DIR/restart_events"
+while read -r count name; do
+    if [ "$count" -ge "$RESTART_LIMIT" ]; then
+        # The name is unit:NAME or container:NAME
+        problems[restarts:$name]="${name/:/ } restarted itself $count times in the last $((RESTART_WINDOW / 60)) minutes"
+    fi
+done < <(awk '{ seen[$2]++ } END { for (name in seen) print seen[name], name }' "$STATE_DIR/restart_events")
+
+# Only problems that were also there on the last run are reported
+for key in "${!problems[@]}"; do
+    if grep -qxF -- "$key" "$STATE_DIR/last_problems"; then
+        report+="${problems[$key]}"$'\n'
+    else
+        echo "new, reported if it's still there on the next run: ${problems[$key]}"
+    fi
+done
+for key in "${!problems[@]}"; do
+    echo "$key"
+done > "$STATE_DIR/last_problems"
+
+if [ -n "$report" ]; then
+    printf '%s' "$report" >&2
+    exit 2
+fi
