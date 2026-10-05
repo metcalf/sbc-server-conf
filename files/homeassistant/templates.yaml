@@ -12,6 +12,9 @@
       hours: /1
     - platform: homeassistant
       event: start
+    # So new or changed sensors here fill in on deploy, not on the hour
+    - platform: event
+      event_type: event_template_reloaded
   action:
     - action: weather.get_forecasts
       data:
@@ -34,3 +37,17 @@
         humidity: "{{ daily['weather.pirateweather'].forecast[0].humidity }}"
         pressure: "{{ daily['weather.pirateweather'].forecast[0].pressure }}"
         uv_index: "{{ daily['weather.pirateweather'].forecast[0].uv_index }}"
+    # The same high/low as above, as their own sensors so the recorder keeps
+    # their history. Forecasts come back in the weather entity's unit (°F).
+    - name: Forecast high today
+      unique_id: forecast_high_today
+      unit_of_measurement: °F
+      device_class: temperature
+      state_class: measurement
+      state: "{{ daily['weather.pirateweather'].forecast[0].temperature }}"
+    - name: Forecast low today
+      unique_id: forecast_low_today
+      unit_of_measurement: °F
+      device_class: temperature
+      state_class: measurement
+      state: "{{ daily['weather.pirateweather'].forecast[0].templow }}"
