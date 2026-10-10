@@ -1,0 +1,6 @@
+# Applied per view (`theme:` on the dashboard view), not as the default theme.
+# By default section headings are 16px and card titles (e.g. on charts) 24px,
+# so the headings get lost. This makes the headings the larger of the two.
+larger-headings:
+  ha-heading-card-title-font-size: 24px
+  ha-card-header-font-size: 18px

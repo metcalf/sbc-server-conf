@@ -124,6 +124,7 @@
     - configuration.yaml
     - templates.yaml
     - packages/
+    - themes/
 
 - name: Place blueprints
   copy:
