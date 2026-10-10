@@ -51,3 +51,30 @@
       device_class: temperature
       state_class: measurement
       state: "{{ daily['weather.pirateweather'].forecast[0].templow }}"
+
+# US EPA AQI from the Mila's PM2.5 reading. The Mila's own "Air Quality"
+# sensor is HomeKit's 1-5 scale, not an AQI. Breakpoints are the EPA's 2024
+# table, which truncates the concentration to 0.1 μg/m³; above the table the
+# AQI stays at 500. The EPA defines AQI on a 24-hour average, so this is the
+# AQI the instantaneous reading would be if it held.
+- sensor:
+    - name: Mila PM2.5 AQI
+      unique_id: mila_pm2_5_aqi
+      device_class: aqi
+      state_class: measurement
+      availability: "{{ states('sensor.mila_air_purifier_d98798_pm2_5_density') | is_number }}"
+      state: >-
+        {% set pm = states('sensor.mila_air_purifier_d98798_pm2_5_density') | float %}
+        {% set c = [(pm * 10) | round(4) | int / 10, 0] | max %}
+        {% set ns = namespace(aqi=500) %}
+        {% for lo, hi, aqi_lo, aqi_hi in [
+          (0.0, 9.0, 0, 50),
+          (9.1, 35.4, 51, 100),
+          (35.5, 55.4, 101, 150),
+          (55.5, 125.4, 151, 200),
+          (125.5, 225.4, 201, 300),
+          (225.5, 325.4, 301, 500),
+        ] if lo <= c <= hi %}
+          {% set ns.aqi = ((aqi_hi - aqi_lo) / (hi - lo) * (c - lo) + aqi_lo) | round | int %}
+        {% endfor %}
+        {{ ns.aqi }}
